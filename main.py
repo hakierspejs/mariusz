@@ -44,7 +44,7 @@ def lodz(bot):
         update_id = update.update_id + 1
         for word in LODZ:
             if word in update.message.text:
-                update.message.reply_text('https://www.youtube.com/watch?v=IJ2kvZpJ_BU')
+                update.message.reply_text('https://www.youtube.com/watch?v=IJ2kvZpJ_BU ^^')
 
 
 if __name__ == '__main__':
