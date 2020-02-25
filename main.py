@@ -20,6 +20,7 @@ def main():
         update_id = None
 
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.info('Dzialam. Chyba.')
 
     while True:
         try:
