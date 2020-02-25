@@ -15,3 +15,5 @@ RUN git -C /git rev-parse HEAD > /tmp/commit-id
 
 FROM nasz_python
 COPY --from=nasz_git /tmp/commit-id /tmp/commit-id
+
+ENTRYPOINT mariusz-bot
