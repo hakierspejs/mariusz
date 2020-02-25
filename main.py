@@ -43,6 +43,8 @@ def lodz(bot):
     global update_id
     for update in bot.get_updates(offset=update_id, timeout=10):
         update_id = update.update_id + 1
+        if update.message is None or update.message.text is None:
+            continue
         for word in LODZ:
             if word in update.message.text:
                 update.message.reply_text('https://www.youtube.com/watch?v=IJ2kvZpJ_BU ^^')
