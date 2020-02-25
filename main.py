@@ -9,6 +9,12 @@ from config import API_KEY
 
 update_id = None
 
+LODZ = [
+    'Łódź',
+    'Łodzi',
+    'Łódzkie',
+]
+
 def main():
     """Run the bot."""
     global update_id
@@ -24,7 +30,7 @@ def main():
 
     while True:
         try:
-            echo(bot)
+            lodz(bot)
         except NetworkError:
             sleep(1)
         except Unauthorized:
@@ -32,15 +38,13 @@ def main():
             update_id += 1
 
 
-def echo(bot):
-    """Echo the message the user sent."""
+def lodz(bot):
     global update_id
     for update in bot.get_updates(offset=update_id, timeout=10):
         update_id = update.update_id + 1
-
-        if update.message:  # your bot can receive updates without messages
-            # Reply to the message
-            update.message.reply_text(update.message.text)
+        for word in LODZ:
+            if word in update.message.text:
+                update.message.reply_text('https://www.youtube.com/watch?v=IJ2kvZpJ_BU')
 
 
 if __name__ == '__main__':
