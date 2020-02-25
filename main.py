@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 import logging
 import telegram
+import os
 from telegram.error import NetworkError, Unauthorized
 from time import sleep
 
-from config import API_KEY
+API_KEY = os.environ['API_KEY']
 
 update_id = None
 
