@@ -19,6 +19,8 @@ LODZ = [
 def main():
     """Run the bot."""
     global update_id
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level='DEBUG')
+    logging.info('Dzialam. Chyba.')
     bot = telegram.Bot(API_KEY)
 
     try:
@@ -26,8 +28,6 @@ def main():
     except IndexError:
         update_id = None
 
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    logging.info('Dzialam. Chyba.')
 
     while True:
         try:
