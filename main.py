@@ -45,10 +45,10 @@ def lodz(bot):
         update_id = update.update_id + 1
         if update.message is None or update.message.text is None:
             continue
+        if update.message.text.startswith('.wersja'):
+            with open('/tmp/commit-id') as f:
+                update.message.reply_text(f.read()[:6])
         for word in LODZ:
-            if update.message.text.startswith('.wersja'):
-                with open('/tmp/commit-id') as f:
-                    update.message.reply_text(f.read())
             if word in update.message.text:
                 update.message.reply_text('https://www.youtube.com/watch?v=IJ2kvZpJ_BU ^^')
 
