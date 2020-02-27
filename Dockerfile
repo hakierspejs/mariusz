@@ -1,14 +1,19 @@
 FROM python as nasz_python
 
+WORKDIR /app
+
+ADD ./requirements.txt .
+RUN pip install -r requirements.txt
+
+ADD ./setup.py .
+ADD ./mariusz ./mariusz/
+RUN python setup.py install
+
 RUN mkdir /user && chown 1000:1000 /user
 WORKDIR /user
 ENV HOME=/user
 
 USER 1000
-
-ADD ./requirements.txt .
-RUN pip install --user -r requirements.txt
-ADD ./main.py .
 
 FROM alpine/git as nasz_git
 ADD ./.git/ /git
@@ -20,4 +25,4 @@ COPY --from=nasz_git /tmp/commit-id /tmp/commit-id
 COPY --from=nasz_git /tmp/commit-no /tmp/commit-no
 COPY --from=nasz_git /tmp/commit-date /tmp/commit-date
 
-ENTRYPOINT ./main.py
+ENTRYPOINT mariusz-bot

@@ -200,9 +200,13 @@ class Mariusz:
                     funkcja(update)
 
 
-if __name__ == '__main__':
+def main():
     logfmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(format=logfmt, level='DEBUG')
     api_key = os.environ['API_KEY']
     sciezka_do_bazy_chatow = os.environ.get('SCIEZKA_DO_BAZY_CHATOW')
     Mariusz(api_key, sciezka_do_bazy_chatow).run()
+
+
+if __name__ == '__main__':
+    main()
