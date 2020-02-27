@@ -1,10 +1,6 @@
 FROM python as nasz_python
 
-RUN mkdir /user && chown 1000:1000 /user
-WORKDIR /user
-ENV HOME=/user
-
-USER 1000
+WORKDIR /app
 
 ADD ./requirements.txt .
 ADD ./setup.py .
@@ -12,6 +8,12 @@ ADD ./mariusz ./mariusz/
 
 RUN pip install -r requirements.txt
 RUN python setup.py install
+
+RUN mkdir /user && chown 1000:1000 /user
+WORKDIR /user
+ENV HOME=/user
+
+USER 1000
 
 FROM alpine/git as nasz_git
 ADD ./.git/ /git
