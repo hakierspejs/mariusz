@@ -3,10 +3,10 @@ FROM python as nasz_python
 WORKDIR /app
 
 ADD ./requirements.txt .
+RUN pip install -r requirements.txt
+
 ADD ./setup.py .
 ADD ./mariusz ./mariusz/
-
-RUN pip install -r requirements.txt
 RUN python setup.py install
 
 RUN mkdir /user && chown 1000:1000 /user
