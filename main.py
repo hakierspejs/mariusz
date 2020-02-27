@@ -60,7 +60,9 @@ class BazaChatow:
         try:
             with open(self.fname) as f:
                 for line in f:
-                    yield int(line.strip())
+                    chat_id = int(line.strip())
+                    if chat_id != -1001361809256:
+                        yield chat_id
         except FileNotFoundError:
             with open(self.fname, 'w') as f:
                 pass
