@@ -83,6 +83,7 @@ class Mariusz:
 
     # pozyczone od kolegi: https://github.com/yojo2/BillyMays/
     def czy(self, update):
+        '''Taki magic 8-ball, tyle że nie'''
         responses_yes = [
             "tak", "tak", "na pewno", "jeszcze się pytasz?", "tak (no homo)",
             "zaiste", "teraz już tak", "a czy papież sra w lesie?",
