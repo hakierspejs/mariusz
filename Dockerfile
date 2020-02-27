@@ -11,7 +11,7 @@ RUN git -C /git log HEAD --oneline | wc -l > /tmp/commit-no
 RUN git -C /git show -s --format=%ci HEAD > /tmp/commit-date
 FROM nasz_python
 COPY --from=nasz_git /tmp/commit-id /tmp/commit-id
-COPY --from=nasz_git /tmp/commit-id /tmp/commit-no
-COPY --from=nasz_git /tmp/commit-id /tmp/commit-date
+COPY --from=nasz_git /tmp/commit-no /tmp/commit-no
+COPY --from=nasz_git /tmp/commit-date /tmp/commit-date
 
 ENTRYPOINT ./main.py
