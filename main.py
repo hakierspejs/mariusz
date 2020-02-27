@@ -86,12 +86,17 @@ class Mariusz:
                 wersja = f.read()
             with open('/tmp/commit-no') as f:
                 numer = f.read()
+            with open('/tmp/commit-date') as f:
+                data = f.read()
         except FileNotFoundError:
             wersja_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
             wersja = wersja_b.decode()
             no_b = subprocess.check_output(['git', 'log', 'HEAD', '--oneline'])
             numer = len(no_b.split(b'\n'))
-        update.message.reply_text(f'{wersja[:6]} (#{numer})')
+            data = subprocess.check_output([
+                'git', 'show', '-s', '--format=%ci', 'HEAD'
+            ]).decode().strip()
+        update.message.reply_text(f'{wersja[:6]} (#{numer}, {data})')
 
     def help(self, update):
         '''Wyświetla pomoc'''
