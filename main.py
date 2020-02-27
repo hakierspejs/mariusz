@@ -116,7 +116,7 @@ class Mariusz:
         '''Podaje pierwsze 6 znaków hasha commita wersji.'''
         try:
             with open('/tmp/commit-id') as f:
-                wersja = f.read()
+                wersja = f.read().strip()
             with open('/tmp/commit-no') as f:
                 numer = f.read().strip()
             with open('/tmp/commit-date') as f:
