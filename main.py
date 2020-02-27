@@ -3,6 +3,7 @@
 
 import logging
 import re
+import random
 import os
 import subprocess
 from time import sleep
@@ -64,6 +65,7 @@ class Mariusz:
         self.on({'.wersja'}, self.wersja)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
         self.on({'.help', '.pomoc', '.komendy'}, self.help)
+        self.on({'.czy'}, self.czy)
 
     def on(self, slowa, reakcja):
         regex_str = '|'.join([
@@ -78,6 +80,37 @@ class Mariusz:
             self.reakcje[regex] = powiedz_cos
         else:
             self.reakcje[regex] = reakcja
+
+    # pozyczone od kolegi: https://github.com/yojo2/BillyMays/
+    def czy(self, update):
+        responses_yes = [
+            "tak", "tak", "na pewno", "jeszcze się pytasz?", "tak (no homo)",
+            "zaiste", "teraz już tak", "a czy papież sra w lesie?",
+            "jak najbardziej", "jeszcze jak", "jest możliwe", "owszem",
+            "czemu nie", "no w sumie...", "nom", "w rzeczy samej", "na bank",
+            "skoro tak mówisz, to nie będę zaprzeczał"
+        ]
+        responses_no = [
+            "nie", "nie", "to mało prawdopodobne", "nie sądzę",
+            "tak (żartuję, hehe)", "no chyba cię pambuk opuścił",
+            "raczej nie", "jeszcze nie", "gówno prawda", "otóż nie", "niep",
+            "akurat", "nawet o tym nie myśl", "bynajmniej", "co ty gadasz",
+            "chyba ty"
+        ]
+        responses_dunno = [
+            "nie wiem", "być może", "hehe))))))))))))))))))", "może kiedyś",
+            "jeszcze nie wiem", "daj mi chwilę to się zastanowię",
+            "tego nawet najstarsi górale nie wiedzą", "a jebnąć ci ciupaską?",
+            "a co ja jestem, informacja turystyczna?"
+        ]
+
+        if random.random() < 0.45:
+            response = random.choice(responses_yes)
+        elif random.random() < (9/11):
+            response = random.choice(responses_no)
+        else:
+            response = random.choice(responses_dunno)
+        update.message.reply_text(response)
 
     def wersja(self, update):
         '''Podaje pierwsze 6 znaków hasha commita wersji.'''
