@@ -85,9 +85,9 @@ class Mariusz:
             with open('/tmp/commit-id') as f:
                 wersja = f.read()
             with open('/tmp/commit-no') as f:
-                numer = f.read()
+                numer = f.read().strip()
             with open('/tmp/commit-date') as f:
-                data = f.read()
+                data = f.read().strip()
         except FileNotFoundError:
             wersja_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
             wersja = wersja_b.decode()
