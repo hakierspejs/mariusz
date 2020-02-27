@@ -1,57 +1,125 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import logging
-import telegram
+import re
 import os
-from telegram.error import NetworkError, Unauthorized
+import subprocess
 from time import sleep
 
-API_KEY = os.environ['API_KEY']
-
-update_id = None
-
-LODZ = [
-    'Łódź',
-    'Łodzi',
-    'Łódzkie',
-]
-
-def main():
-    """Run the bot."""
-    global update_id
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level='DEBUG')
-    logging.info('Dzialam. Chyba.')
-    bot = telegram.Bot(API_KEY)
-
-    try:
-        update_id = bot.get_updates()[0].update_id
-    except IndexError:
-        update_id = None
+from telegram.error import NetworkError, Unauthorized
+import telegram
 
 
-    while True:
+LOGGER = logging.getLogger()
+
+POLSKI_NA_LACINSKI = {
+    'ą': 'a', 'Ą': 'A',
+    'ć': 'c', 'Ć': 'C',
+    'ę': 'E', 'Ę': 'E',
+    'ł': 'l', 'Ł': 'L',
+    'ń': 'n', 'Ń': 'N',
+    'ó': 'o', 'Ó': 'O',
+    'ś': 's', 'Ś': 'S',
+    'ź': 'z', 'Ź': 'Z',
+    'ż': 'ż', 'Ż': 'z',
+}
+
+
+def normalizuj_slowo(slowo):
+    ret = ''
+    for litera in slowo:
+        ret += POLSKI_NA_LACINSKI.get(litera, litera)
+    LOGGER.debug('normalizuj_slowo(%r)=%r', slowo, ret)
+    return ret
+
+
+def normalizuj(zbior):
+    ret = set()
+    for slowo in zbior:
+        ret.add(slowo)
+        ret.add(normalizuj_slowo(slowo))
+    LOGGER.debug('normalizuj(%r)=%r', zbior, ret)
+    return ret
+
+
+class Mariusz:
+
+    def __init__(self, api_key):
+        self.update_id = None
+        self.reakcje = {}
+        self.bot = telegram.Bot(api_key)
+
         try:
-            lodz(bot)
-        except NetworkError:
-            sleep(1)
-        except Unauthorized:
-            # The user has removed or blocked the bot.
-            update_id += 1
+            self.update_id = self.bot.get_updates()[0].update_id
+        except IndexError:
+            self.update_id = None
 
+        LOGGER.info('Dzialam. Chyba.')
 
-def lodz(bot):
-    global update_id
-    for update in bot.get_updates(offset=update_id, timeout=10):
-        update_id = update.update_id + 1
-        if update.message is None or update.message.text is None:
-            continue
-        if update.message.text.startswith('.wersja'):
+        self.on(
+            normalizuj({'Łódź', 'Łodzi', 'łódzkie'}),
+            'https://www.youtube.com/watch?v=IJ2kvZpJ_BU'
+        )
+        self.on({'.wersja'}, self.wersja)
+        self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
+        self.on({'.help', '.pomoc', '.komendy'}, self.help)
+
+    def on(self, slowa, reakcja):
+        regex_str = '|'.join([
+            '^' + x if x.startswith('.') else x for x in slowa
+        ])
+        regex = re.compile(regex_str, flags=re.IGNORECASE)
+        if isinstance(reakcja, str):
+
+            def powiedz_cos(update):
+                update.message.reply_text(reakcja)
+            powiedz_cos.__doc__ = f'mówi `{reakcja}`'
+            self.reakcje[regex] = powiedz_cos
+        else:
+            self.reakcje[regex] = reakcja
+
+    def wersja(self, update):
+        '''Podaje pierwsze 6 znaków hasha commita wersji.'''
+        try:
             with open('/tmp/commit-id') as f:
-                update.message.reply_text(f.read()[:6])
-        for word in LODZ:
-            if word in update.message.text:
-                update.message.reply_text('https://www.youtube.com/watch?v=IJ2kvZpJ_BU ^^')
+                wersja = f.read()
+        except FileNotFoundError:
+            wersja_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+            wersja = wersja_b.decode()
+        update.message.reply_text(wersja[:6])
+
+    def help(self, update):
+        '''Wyświetla pomoc'''
+        msg = ''
+        for reakcja, funkcja in self.reakcje.items():
+            opis = funkcja.__doc__ or funkcja.__name__
+            msg += f'{reakcja.pattern} => {opis}\n'
+        update.message.reply_text(msg, parse_mode=telegram.ParseMode.MARKDOWN)
+
+    def run(self):
+
+        while True:
+            try:
+                self.obsluz_wiadomosci()
+            except NetworkError:
+                sleep(1)
+            except Unauthorized:
+                # The user has removed or blocked the bot.
+                self.update_id += 1
+
+    def obsluz_wiadomosci(self):
+        for update in self.bot.get_updates(offset=self.update_id, timeout=10):
+            self.update_id = update.update_id + 1
+            if update.message is None or update.message.text is None:
+                continue
+            for reakcja, funkcja in self.reakcje.items():
+                if reakcja.match(update.message.text):
+                    funkcja(update)
 
 
 if __name__ == '__main__':
-    main()
+    logfmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(format=logfmt, level='DEBUG')
+    api_key = os.environ['API_KEY']
+    Mariusz(api_key).run()
