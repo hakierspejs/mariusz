@@ -206,3 +206,7 @@ def main():
     api_key = os.environ['API_KEY']
     sciezka_do_bazy_chatow = os.environ.get('SCIEZKA_DO_BAZY_CHATOW')
     Mariusz(api_key, sciezka_do_bazy_chatow).run()
+
+
+if __name__ == '__main__':
+    main()
