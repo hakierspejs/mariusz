@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sqlite3
 import logging
 import re
 import random
@@ -48,24 +49,26 @@ def normalizuj(zbior):
 class BazaChatow:
 
     def __init__(self, fname):
-        self.fname = fname
+        self.db = sqlite3.connect(fname)
+        self.zaladuj_scheme()
+
+    def zaladuj_scheme(self):
+        self.db.execute('CREATE TABLE IF NOT EXISTS chat_ids (chat_id TEXT);')
 
     def dopisz(self, chat_id):
-        if chat_id in self.listuj():
+        if int(chat_id) in self.listuj():
             return
-        with open(self.fname, 'a') as f:
-            f.write(str(chat_id) + '\n')
+        sql = 'INSERT INTO chat_ids(chat_id) VALUES (?)'
+        cur = self.db.cursor()
+        cur.execute(sql, (chat_id, ))
+        self.db.commit()
 
     def listuj(self):
-        try:
-            with open(self.fname) as f:
-                for line in f:
-                    chat_id = int(line.strip())
-                    if chat_id != -1001361809256:
-                        yield chat_id
-        except FileNotFoundError:
-            with open(self.fname, 'w') as f:
-                pass
+        for row in self.db.execute('SELECT chat_id FROM chat_ids'):
+            chat_id = int(row[0])
+            if chat_id != -1001361809256:
+                yield chat_id
+
 
 class Mariusz:
 
