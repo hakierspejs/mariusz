@@ -44,9 +44,30 @@ def normalizuj(zbior):
     return ret
 
 
+# TODO: przepisać na sqlite, bo wstyd.
+class BazaChatow:
+
+    def __init__(self, fname):
+        self.fname = fname
+
+    def dopisz(self, chat_id):
+        if chat_id in self.listuj():
+            return
+        with open(self.fname, 'a') as f:
+            f.write(str(chat_id) + '\n')
+
+    def listuj(self):
+        try:
+            with open(self.fname) as f:
+                for line in f:
+                    yield int(line.strip())
+        except FileNotFoundError:
+            with open(self.fname, 'w') as f:
+                pass
+
 class Mariusz:
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, sciezka_do_bazy_chatow):
         self.update_id = None
         self.reakcje = {}
         self.bot = telegram.Bot(api_key)
@@ -56,7 +77,15 @@ class Mariusz:
         except IndexError:
             self.update_id = None
 
-        LOGGER.info('Dzialam. Chyba.')
+        if sciezka_do_bazy_chatow:
+            self.baza_chatow = BazaChatow(sciezka_do_bazy_chatow)
+            wersja = self.zbuduj_opis_wersji()
+            msg = f'Bot się wita po restarcie. wersja={wersja}'
+            for chat_id in self.baza_chatow.listuj():
+                LOGGER.debug('Witam się z chat_id=%r', chat_id)
+                self.bot.send_message(text=msg, chat_id=chat_id)
+        else:
+            self.baza_chatow = None
 
         self.on(
             normalizuj({'Łódź', 'Łodzi', 'łódzkie'}),
@@ -113,8 +142,7 @@ class Mariusz:
             response = random.choice(responses_dunno)
         update.message.reply_text(response)
 
-    def wersja(self, update):
-        '''Podaje pierwsze 6 znaków hasha commita wersji.'''
+    def zbuduj_opis_wersji(self):
         try:
             with open('/tmp/commit-id') as f:
                 wersja = f.read().strip()
@@ -130,7 +158,11 @@ class Mariusz:
             data = subprocess.check_output([
                 'git', 'show', '-s', '--format=%ci', 'HEAD'
             ]).decode().strip()
-        update.message.reply_text(f'{wersja[:6]} (#{numer}, {data})')
+        return f'{wersja[:6]} (#{numer}, {data})'
+
+    def wersja(self, update):
+        '''Podaje pierwsze 6 znaków hasha commita wersji.'''
+        update.message.reply_text(self.zbuduj_opis_wersji())
 
     def help(self, update):
         '''Wyświetla pomoc'''
@@ -156,6 +188,8 @@ class Mariusz:
             self.update_id = update.update_id + 1
             if update.message is None or update.message.text is None:
                 continue
+            if self.baza_chatow:
+                self.baza_chatow.dopisz(update.message.chat_id)
             for reakcja, funkcja in self.reakcje.items():
                 if reakcja.match(update.message.text):
                     funkcja(update)
@@ -165,4 +199,5 @@ if __name__ == '__main__':
     logfmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(format=logfmt, level='DEBUG')
     api_key = os.environ['API_KEY']
-    Mariusz(api_key).run()
+    sciezka_do_bazy_chatow = os.environ.get('SCIEZKA_DO_BAZY_CHATOW')
+    Mariusz(api_key, sciezka_do_bazy_chatow).run()
