@@ -98,6 +98,7 @@ class Mariusz:
         )
         self.on({'.wersja'}, self.wersja)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
+        self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
         self.on({'.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
         self.on({'.help', '.pomoc', '.komendy'}, self.help)
         self.on({'.czy'}, self.czy)
