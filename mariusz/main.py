@@ -47,8 +47,9 @@ NAZWY_MIESIECY = [
 
 
 def opisz_date(data):
+    miesiac = NAZWY_MIESIECY[data.month-1]
     return (
-        f'{NAZWY_DNI[data.weekday()]}, {data.day} {NAZWY_MIESIECY[data.month]}'
+        f'{NAZWY_DNI[data.weekday()]}, {data.day} {miesiac}'
         f' {data.year} o godz {data.hour}:{str(data.minute).zfill(2)}'
     )
 
