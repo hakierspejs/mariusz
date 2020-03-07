@@ -170,6 +170,7 @@ class Mariusz:
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
         self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
         self.on({'.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
+        self.on({'.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
         self.on({'.help', '.pomoc', '.komendy'}, self.help)
         self.on({'.czy'}, self.czy)
 
