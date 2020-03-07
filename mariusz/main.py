@@ -24,13 +24,13 @@ LOGGER = logging.getLogger()
 POLSKI_NA_LACINSKI = {
     'ą': 'a', 'Ą': 'A',
     'ć': 'c', 'Ć': 'C',
-    'ę': 'E', 'Ę': 'E',
+    'ę': 'e', 'Ę': 'E',
     'ł': 'l', 'Ł': 'L',
     'ń': 'n', 'Ń': 'N',
     'ó': 'o', 'Ó': 'O',
     'ś': 's', 'Ś': 'S',
     'ź': 'z', 'Ź': 'Z',
-    'ż': 'ż', 'Ż': 'z',
+    'ż': 'z', 'Ż': 'Z',
 }
 
 
@@ -167,6 +167,8 @@ class Mariusz:
         )
         self.on({'.wersja'}, self.wersja)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
+        self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
+        self.on({'.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
         self.on({'.help', '.pomoc', '.komendy'}, self.help)
         self.on({'.czy'}, self.czy)
 
