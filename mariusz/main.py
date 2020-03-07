@@ -241,14 +241,15 @@ class Mariusz:
             LOGGER.debug('obsluz_meetup(): self.baza_chatow is None')
             return
         for chat_id in self.baza_chatow.listuj():
+            if chat_id > 0:  # jeśli to priv a nie chat grupowy, pomiń
+                continue
             chat = self.bot.get_chat(chat_id=chat_id)
             if chat.pinned_message and chat.pinned_message.text == wiadomosc:
                 continue
             msg = self.bot.send_message(text=wiadomosc, chat_id=chat_id)
-            if chat_id < 0:  # czy to chat grupowy?
-                self.bot.pin_chat_message(
-                    message_id=msg.message_id, chat_id=msg.chat_id
-                )
+            self.bot.pin_chat_message(
+                message_id=msg.message_id, chat_id=msg.chat_id
+            )
 
     def run(self):
 
