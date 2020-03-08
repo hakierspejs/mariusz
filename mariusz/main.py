@@ -113,9 +113,9 @@ class ChatDb:
 
     def __init__(self, fname):
         self.db = sqlite3.connect(fname)
-        self.load_scheme()
+        self.load_schema()
 
-    def load_scheme(self):
+    def load_schema(self):
         self.db.execute('CREATE TABLE IF NOT EXISTS chat_ids (chat_id TEXT);')
 
     def insert(self, chat_id):
@@ -258,7 +258,7 @@ class Mariusz:
         while True:
             try:
                 self.handle_meetup()
-                self.parse_message()
+                self.handle_message()
             except NetworkError:
                 time.sleep(1)
             except Unauthorized:
@@ -270,7 +270,7 @@ class Mariusz:
                 self.send_to_all_chats(message)
                 raise
 
-    def parse_message(self):
+    def handle_message(self):
         for update in self.bot.get_updates(offset=self.update_id, timeout=10):
             self.update_id = update.update_id + 1
             if update.message is None or update.message.text is None:
