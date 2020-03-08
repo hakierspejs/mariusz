@@ -2,3 +2,4 @@ python-telegram-bot
 python-dateutil
 lxml
 requests
+git+https://github.com/hakierspejs/meetupscraper

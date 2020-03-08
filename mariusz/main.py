@@ -15,9 +15,9 @@ import traceback
 import lxml.etree
 import lxml.html
 import requests
-
 from telegram.error import NetworkError, Unauthorized
 import telegram
+import meetupscraper
 
 
 LOGGER = logging.getLogger()
@@ -74,26 +74,21 @@ def normalizuj(zbior):
 
 def sformuluj_powiadomienie_meetupowe():
 
-    prefix = 'https://www.meetup.com/Hakierspejs-%C5%81od%C5%BA/'
-    s = requests.get(prefix + '/events/rss/').text
-    rss = lxml.etree.fromstring(s.encode())
 
-    timestamps = []
-    for item in rss.xpath('//item'):
-        for description in item.xpath('.//description/text()'):
-            h = lxml.html.fromstring(description.encode())
-            p = h.xpath('//p/text()')
-            timestamps.append(dateutil.parser.parse(p[-3]))
-
-    jutro = datetime.datetime.now() + datetime.timedelta(days=1)
-    daty_spotkan = [t for t in timestamps if t > jutro]
-    if not daty_spotkan:
+    najblizsze = sorted(
+        [
+            e for e in meetupscraper.get_upcoming_events('Hakierspejs-Łódź')
+            if e.date > datetime.datetime.now() + datetime.timedelta(days=1)
+        ], key=lambda e: e.date
+    )
+    if not najblizsze:
         return
-    najblizszy = min(daty_spotkan)
+    najblizszy = najblizsze[0]
 
     return (
-        f'Nast. spotkanie: {opisz_date(najblizszy)}. Więcej szczegółów: '
-        + prefix + '/events/calendar/'
+        f'Nast. spotkanie: {opisz_date(najblizszy.date)}'
+        f' w {najblizszy.venue.name} ({najblizszy.venue.street}). '
+        f'Więcej szczegółów: {najblizszy.url}'
     )
 
 
