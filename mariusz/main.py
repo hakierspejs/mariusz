@@ -10,6 +10,7 @@ import subprocess
 import datetime
 import time
 import dateutil.parser
+import traceback
 
 import lxml.etree
 import lxml.html
@@ -152,15 +153,12 @@ class Mariusz:
 
         if sciezka_do_bazy_chatow:
             self.baza_chatow = BazaChatow(sciezka_do_bazy_chatow)
-            wersja = zbuduj_opis_wersji()
-            msg = f'Bot się wita po restarcie. wersja={wersja}'
-            for chat_id in self.baza_chatow.listuj():
-                if chat_id == -1001361809256:
-                    continue
-                LOGGER.debug('Witam się z chat_id=%r', chat_id)
-                self.bot.send_message(text=msg, chat_id=chat_id)
         else:
             self.baza_chatow = None
+
+        wersja = zbuduj_opis_wersji()
+        msg = f'Bot się wita po restarcie. wersja={wersja}'
+        self.wyslij_do_wszystkich(msg)
 
         self.on(
             normalizuj({'Łódź', 'Łodzi', 'łódzkie'}),
@@ -173,6 +171,14 @@ class Mariusz:
         self.on({'.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
         self.on({'.help', '.pomoc', '.komendy'}, self.help)
         self.on({'.czy'}, self.czy)
+
+    def wyslij_do_wszystkich(self, msg):
+        if self.baza_chatow is None:
+            return
+        for chat_id in self.baza_chatow.listuj():
+            if chat_id == -1001361809256:
+                continue
+            self.bot.send_message(text=msg, chat_id=chat_id)
 
     def on(self, slowa, reakcja):
         regex_str = '|'.join([
@@ -264,6 +270,11 @@ class Mariusz:
             except Unauthorized:
                 # The user has removed or blocked the bot.
                 self.update_id += 1
+            except Exception:
+                formatted_traceback = traceback.format_exc()
+                wiadomosc = f'Bot umar. Traceback:\n\n{formatted_traceback}'
+                self.wyslij_do_wszystkich(wiadomosc)
+                raise
 
     def obsluz_wiadomosci(self):
         for update in self.bot.get_updates(offset=self.update_id, timeout=10):
