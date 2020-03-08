@@ -7,10 +7,17 @@ import re
 import random
 import os
 import subprocess
-from time import sleep
+import datetime
+import time
+import dateutil.parser
+import traceback
 
+import lxml.etree
+import lxml.html
+import requests
 from telegram.error import NetworkError, Unauthorized
 import telegram
+import meetupscraper
 
 
 LOGGER = logging.getLogger()
@@ -27,6 +34,24 @@ POLISH_TO_LATIN = {
     'ż': 'z', 'Ż': 'Z',
 }
 
+DAY_NAMES = [
+    'poniedziałek', 'wtorek', 'środa',
+    'czwartek', 'piątek', 'sobota', 'niedziela'
+]
+
+
+MONTH_NAMES = [
+    'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca',
+    'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+]
+
+
+def describe_date(date):
+    month = MONTH_NAMES[date.month-1]
+    return (
+        f'{DAY_NAMES[date.weekday()]}, {date.day} {month}'
+        f' {date.year} o godz {date.hour}:{str(date.minute).zfill(2)}'
+    )
 
 def normalize_word(word):
     output = ''
@@ -36,7 +61,7 @@ def normalize_word(word):
     return output
 
 
-def normalize(sequence): #chuj
+def normalize(sequence):
     output = set()
     for word in sequence:
         output.add(word)
@@ -45,8 +70,46 @@ def normalize(sequence): #chuj
     return output
 
 
-# TODO: przepisać na sqlite, bo wstyd.
-class ChatDb: #chuj
+def form_meetup_message():
+
+
+    upcoming_events = sorted(
+        [
+            e for e in meetupscraper.get_upcoming_events('Hakierspejs-Łódź')
+            if e.date > datetime.datetime.now() + datetime.timedelta(days=1)
+        ], key=lambda e: e.date
+    )
+    if not upcoming_events:
+        return
+    next_meeting = upcoming_events[0]
+
+    return (
+        f'Nast. spotkanie: {describe_date(next_meeting.date)}'
+        f' w {next_meeting.venue.name} ({next_meeting.venue.street}). '
+        f'Więcej szczegółów: {next_meeting.url}'
+    )
+
+
+def build_version_description():
+    try:
+        with open('/tmp/commit-id') as f:
+            version = f.read().strip()
+        with open('/tmp/commit-no') as f:
+            numer = f.read().strip()
+        with open('/tmp/commit-date') as f:
+            date = f.read().strip()
+    except FileNotFoundError:
+        version_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+        version = version_b.decode()
+        no_b = subprocess.check_output(['git', 'log', 'HEAD', '--oneline'])
+        numer = len(no_b.split(b'\n'))
+        date = subprocess.check_output([
+            'git', 'show', '-s', '--format=%ci', 'HEAD'
+        ]).decode().strip()
+    return f'{version[:6]} (#{numer}, {date})'
+
+
+class ChatDb:
 
     def __init__(self, fname):
         self.db = sqlite3.connect(fname)
@@ -56,25 +119,24 @@ class ChatDb: #chuj
         self.db.execute('CREATE TABLE IF NOT EXISTS chat_ids (chat_id TEXT);')
 
     def insert(self, chat_id):
-        if int(chat_id) in self.write_out():
+        if int(chat_id) in self.list():
             return
         sql = 'INSERT INTO chat_ids(chat_id) VALUES (?)'
         cur = self.db.cursor()
         cur.execute(sql, (chat_id, ))
         self.db.commit()
 
-    def write_out(self):
-        for row in self.db.execute('SELECT chat_id FROM chat_ids'):
-            chat_id = int(row[0])
-            if chat_id != -1001361809256:
-                yield chat_id
+    def list(self):
+        for row in self.db.execute('SELECT DISTINCT chat_id FROM chat_ids'):
+            yield int(row[0])
 
 
 class Mariusz:
 
     def __init__(self, api_key, path_to_chat_db):
         self.update_id = None
-        self.reactions = {} #chuj
+        self.reactions = {}
+        self.last_meetup_check = 0
         self.bot = telegram.Bot(api_key)
 
         try:
@@ -84,13 +146,12 @@ class Mariusz:
 
         if path_to_chat_db:
             self.chat_db = ChatDb(path_to_chat_db)
-            version = self.build_version_description()
-            msg = f'Bot się wita po restarcie. wersja={version}'
-            for chat_id in self.chat_db.write_out():
-                LOGGER.debug('Witam się z chat_id=%r', chat_id)
-                self.bot.send_message(text=msg, chat_id=chat_id)
         else:
             self.chat_db = None
+
+        version = build_version_description()
+        msg = f'Bot się wita po restarcie. wersja={version}'
+        self.send_to_all_chats(msg)
 
         self.on(
             normalize({'Łódź', 'Łodzi', 'łódzkie'}),
@@ -100,8 +161,17 @@ class Mariusz:
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
         self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
         self.on({'.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
+        self.on({'.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
         self.on({'.help', '.pomoc', '.komendy'}, self.help)
         self.on({'.czy'}, self.czy)
+
+    def send_to_all_chats(self, msg):
+        if self.chat_db is None:
+            return
+        for chat_id in self.chat_db.list():
+            if chat_id == -1001361809256:
+                continue
+            self.bot.send_message(text=msg, chat_id=chat_id)
 
     def on(self, text, reaction):
         regex_str = '|'.join([
@@ -149,46 +219,56 @@ class Mariusz:
             response = random.choice(responses_dunno)
         update.message.reply_text(response)
 
-    def build_version_description(self):
-        try:
-            with open('/tmp/commit-id') as f:
-                version = f.read().strip()
-            with open('/tmp/commit-no') as f:
-                number = f.read().strip()
-            with open('/tmp/commit-date') as f:
-                data = f.read().strip()
-        except FileNotFoundError: #chuj
-            version_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
-            version = version_b.decode()
-            no_b = subprocess.check_output(['git', 'log', 'HEAD', '--oneline'])
-            number = len(no_b.split(b'\n'))
-            data = subprocess.check_output([
-                'git', 'show', '-s', '--format=%ci', 'HEAD'
-            ]).decode().strip()
-        return f'{version[:6]} (#{number}, {data})'
 
     def version(self, update):
         '''Podaje pierwsze 6 znaków hasha commita wersji.'''
-        update.message.reply_text(self.build_version_description())
+        update.message.reply_text(build_version_description())
 
     def help(self, update):
         '''Wyświetla pomoc'''
         msg = ''
         for reaction, function in self.reactions.items():
-            opis = function.__doc__ or function.__name__
-            msg += f'{reaction.pattern} => {opis}\n'
+            description = function.__doc__ or function.__name__
+            msg += f'{reaction.pattern} => {description}\n'
         update.message.reply_text(msg, parse_mode=telegram.ParseMode.MARKDOWN)
+
+    def handle_meetup(self):
+        if self.last_meetup_check + 600 > time.time():
+            return
+        message = form_meetup_message()
+        if not message:
+            return
+        self.last_meetup_check = time.time()
+        if self.chat_db is None:
+            LOGGER.debug('handle_meetup(): self.chat_db is None')
+            return
+        for chat_id in self.chat_db.list():
+            if chat_id > 0:  # jeśli to priv a nie chat grupowy, pomiń
+                continue
+            chat = self.bot.get_chat(chat_id=chat_id)
+            if chat.pinned_message and chat.pinned_message.text == message:
+                continue
+            msg = self.bot.send_message(text=message, chat_id=chat_id)
+            self.bot.pin_chat_message(
+                message_id=msg.message_id, chat_id=msg.chat_id
+            )
 
     def run(self):
 
         while True:
             try:
+                self.handle_meetup()
                 self.parse_message()
             except NetworkError:
-                sleep(1)
+                time.sleep(1)
             except Unauthorized:
                 # The user has removed or blocked the bot.
                 self.update_id += 1
+            except Exception:
+                formatted_traceback = traceback.format_exc()
+                message = f'Bot umar. Traceback:\n\n{formatted_traceback}'
+                self.send_to_all_chats(message)
+                raise
 
     def parse_message(self):
         for update in self.bot.get_updates(offset=self.update_id, timeout=10):
