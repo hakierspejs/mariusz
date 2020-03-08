@@ -70,7 +70,7 @@ def normalize(sequence):
     return output
 
 
-def form_meetup_message():
+def prepare_meetup_message():
 
 
     upcoming_events = sorted(
@@ -235,7 +235,7 @@ class Mariusz:
     def handle_meetup(self):
         if self.last_meetup_check + 600 > time.time():
             return
-        message = form_meetup_message()
+        message = prepare_meetup_message()
         if not message:
             return
         self.last_meetup_check = time.time()
