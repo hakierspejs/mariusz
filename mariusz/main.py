@@ -258,7 +258,7 @@ class Mariusz:
         while True:
             try:
                 self.handle_meetup()
-                self.handle_message()
+                self.handle_messages()
             except NetworkError:
                 time.sleep(1)
             except Unauthorized:
@@ -270,7 +270,7 @@ class Mariusz:
                 self.send_to_all_chats(message)
                 raise
 
-    def handle_message(self):
+    def handle_messages(self):
         for update in self.bot.get_updates(offset=self.update_id, timeout=10):
             self.update_id = update.update_id + 1
             if update.message is None or update.message.text is None:
