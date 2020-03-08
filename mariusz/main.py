@@ -243,7 +243,7 @@ class Mariusz:
             LOGGER.debug('handle_meetup(): self.chat_db is None')
             return
         for chat_id in self.chat_db.list():
-            if chat_id > 0:  # jeśli to priv a nie chat grupowy, pomiń
+            if chat_id > 0:  # skip if it's a private chat instead of a group
                 continue
             chat = self.bot.get_chat(chat_id=chat_id)
             if chat.pinned_message and chat.pinned_message.text == message:
