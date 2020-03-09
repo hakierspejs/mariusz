@@ -76,7 +76,7 @@ def prepare_meetup_message():
     upcoming_events = sorted(
         [
             e for e in meetupscraper.get_upcoming_events('Hakierspejs-Łódź')
-            if e.date > datetime.datetime.now() + datetime.timedelta(days=1)
+            if (e.date + datetime.timedelta(days=1)) > datetime.datetime.now()
         ], key=lambda e: e.date
     )
     if not upcoming_events:
