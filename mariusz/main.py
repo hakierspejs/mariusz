@@ -74,7 +74,6 @@ def normalizuj(zbior):
 
 def sformuluj_powiadomienie_meetupowe():
 
-
     najblizsze = sorted(
         [
             e for e in meetupscraper.get_upcoming_events('Hakierspejs-Łódź')
@@ -159,13 +158,13 @@ class Mariusz:
             normalizuj({'Łódź', 'Łodzi', 'łódzkie'}),
             'https://www.youtube.com/watch?v=IJ2kvZpJ_BU'
         )
-        self.on({'.wersja'}, self.wersja)
+        self.on({'\\.wersja'}, self.wersja)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
         self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
-        self.on({'.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
-        self.on({'.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
-        self.on({'.help', '.pomoc', '.komendy'}, self.help)
-        self.on({'.czy'}, self.czy)
+        self.on({'\\.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
+        self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
+        self.on({'\\.help', '\\.pomoc', '\\.komendy'}, self.help)
+        self.on({'\\.czy'}, self.czy)
 
     def wyslij_do_wszystkich(self, msg):
         if self.baza_chatow is None:
@@ -177,7 +176,7 @@ class Mariusz:
 
     def on(self, slowa, reakcja):
         regex_str = '|'.join([
-            '^' + x if x.startswith('.') else x for x in slowa
+            '^' + x if x.startswith('\\.') else x for x in slowa
         ])
         regex = re.compile(regex_str, flags=re.IGNORECASE)
         if isinstance(reakcja, str):
