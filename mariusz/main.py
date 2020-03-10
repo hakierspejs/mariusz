@@ -22,7 +22,7 @@ import meetupscraper
 
 LOGGER = logging.getLogger()
 
-POLSKI_NA_LACINSKI = {
+POLISH_TO_LATIN = {
     'ą': 'a', 'Ą': 'A',
     'ć': 'c', 'Ć': 'C',
     'ę': 'e', 'Ę': 'E',
@@ -34,110 +34,108 @@ POLSKI_NA_LACINSKI = {
     'ż': 'z', 'Ż': 'Z',
 }
 
-
-NAZWY_DNI = [
+DAY_NAMES = [
     'poniedziałek', 'wtorek', 'środa',
     'czwartek', 'piątek', 'sobota', 'niedziela'
 ]
 
 
-NAZWY_MIESIECY = [
+MONTH_NAMES = [
     'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca',
     'sierpnia', 'września', 'października', 'listopada', 'grudnia'
 ]
 
 
-def opisz_date(data):
-    miesiac = NAZWY_MIESIECY[data.month-1]
+def describe_date(date):
+    month = MONTH_NAMES[date.month-1]
     return (
-        f'{NAZWY_DNI[data.weekday()]}, {data.day} {miesiac}'
-        f' {data.year} o godz {data.hour}:{str(data.minute).zfill(2)}'
+        f'{DAY_NAMES[date.weekday()]}, {date.day} {month}'
+        f' {date.year} o godz {date.hour}:{str(date.minute).zfill(2)}'
     )
 
-
-def normalizuj_slowo(slowo):
-    ret = ''
-    for litera in slowo:
-        ret += POLSKI_NA_LACINSKI.get(litera, litera)
-    LOGGER.debug('normalizuj_slowo(%r)=%r', slowo, ret)
-    return ret
-
-
-def normalizuj(zbior):
-    ret = set()
-    for slowo in zbior:
-        ret.add(slowo)
-        ret.add(normalizuj_slowo(slowo))
-    LOGGER.debug('normalizuj(%r)=%r', zbior, ret)
-    return ret
+def normalize_word(word):
+    output = ''
+    for letter in word:
+        output += POLISH_TO_LATIN.get(letter, letter)
+    LOGGER.debug('normalize_word(%r)=%r', word, output)
+    return output
 
 
-def sformuluj_powiadomienie_meetupowe():
+def normalize(sequence):
+    output = set()
+    for word in sequence:
+        output.add(word)
+        output.add(normalize_word(word))
+    LOGGER.debug('normalize(%r)=%r', sequence, output)
+    return output
 
-    najblizsze = sorted(
+
+def prepare_meetup_message():
+
+    upcoming_events = sorted(
         [
             e for e in meetupscraper.get_upcoming_events('Hakierspejs-Łódź')
-            if e.date > datetime.datetime.now() + datetime.timedelta(days=1)
+            if (e.date + datetime.timedelta(days=1)) > datetime.datetime.now()
         ], key=lambda e: e.date
     )
-    if not najblizsze:
+    if not upcoming_events:
         return
-    najblizszy = najblizsze[0]
+    next_meeting = upcoming_events[0]
 
     return (
-        f'Nast. spotkanie: {opisz_date(najblizszy.date)}'
-        f' w {najblizszy.venue.name} ({najblizszy.venue.street}). '
-        f'Więcej szczegółów: {najblizszy.url}'
+        f'Nast. spotkanie: {describe_date(next_meeting.date)}'
+        f' w {next_meeting.venue.name} ({next_meeting.venue.street}). '
+        f'Więcej szczegółów: {next_meeting.url}'
     )
 
 
-def zbuduj_opis_wersji():
+def build_version_description():
     try:
         with open('/tmp/commit-id') as f:
-            wersja = f.read().strip()
+            version = f.read().strip()
         with open('/tmp/commit-no') as f:
             numer = f.read().strip()
         with open('/tmp/commit-date') as f:
-            data = f.read().strip()
+            date = f.read().strip()
     except FileNotFoundError:
-        wersja_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
-        wersja = wersja_b.decode()
+        version_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+        version = version_b.decode()
         no_b = subprocess.check_output(['git', 'log', 'HEAD', '--oneline'])
         numer = len(no_b.split(b'\n'))
-        data = subprocess.check_output([
+        date = subprocess.check_output([
             'git', 'show', '-s', '--format=%ci', 'HEAD'
         ]).decode().strip()
-    return f'{wersja[:6]} (#{numer}, {data})'
+    return f'{version[:6]} (#{numer}, {date})'
 
 
-class BazaChatow:
+class ChatDb:
 
     def __init__(self, fname):
         self.db = sqlite3.connect(fname)
-        self.zaladuj_scheme()
+        self.load_schema()
 
-    def zaladuj_scheme(self):
+    def load_schema(self):
         self.db.execute('CREATE TABLE IF NOT EXISTS chat_ids (chat_id TEXT);')
 
-    def dopisz(self, chat_id):
-        if int(chat_id) in self.listuj():
+    def insert(self, chat_id):
+        if int(chat_id) in self.list():
             return
         sql = 'INSERT INTO chat_ids(chat_id) VALUES (?)'
         cur = self.db.cursor()
         cur.execute(sql, (chat_id, ))
         self.db.commit()
 
-    def listuj(self):
+    def list(self):
         for row in self.db.execute('SELECT DISTINCT chat_id FROM chat_ids'):
             yield int(row[0])
 
 
 class Mariusz:
 
-    def __init__(self, api_key, sciezka_do_bazy_chatow):
+    def __init__(self, api_key, path_to_chat_db):
         self.update_id = None
-        self.reakcje = {}
-        self.ostatnie_sprawdzenie_meetupa = 0
+        self.reactions = {}
+        self.last_meetup_check = 0
         self.bot = telegram.Bot(api_key)
 
         try:
@@ -145,20 +143,20 @@ class Mariusz:
         except IndexError:
             self.update_id = None
 
-        if sciezka_do_bazy_chatow:
-            self.baza_chatow = BazaChatow(sciezka_do_bazy_chatow)
+        if path_to_chat_db:
+            self.chat_db = ChatDb(path_to_chat_db)
         else:
-            self.baza_chatow = None
+            self.chat_db = None
 
-        wersja = zbuduj_opis_wersji()
-        msg = f'Bot się wita po restarcie. wersja={wersja}'
-        self.wyslij_do_wszystkich(msg)
+        version = build_version_description()
+        msg = f'Bot się wita po restarcie. wersja={version}'
+        self.send_to_all_chats(msg)
 
         self.on(
-            normalizuj({'Łódź', 'Łodzi', 'łódzkie'}),
+            normalize({'Łódź', 'Łodzi', 'łódzkie'}),
             'https://www.youtube.com/watch?v=IJ2kvZpJ_BU'
         )
-        self.on({'\\.wersja'}, self.wersja)
+        self.on({'\\.wersja'}, self.version)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
         self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
         self.on({'\\.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
@@ -166,27 +164,27 @@ class Mariusz:
         self.on({'\\.help', '\\.pomoc', '\\.komendy'}, self.help)
         self.on({'\\.czy'}, self.czy)
 
-    def wyslij_do_wszystkich(self, msg):
-        if self.baza_chatow is None:
+    def send_to_all_chats(self, msg):
+        if self.chat_db is None:
             return
-        for chat_id in self.baza_chatow.listuj():
+        for chat_id in self.chat_db.list():
             if chat_id == -1001361809256:
                 continue
             self.bot.send_message(text=msg, chat_id=chat_id)
 
-    def on(self, slowa, reakcja):
+    def on(self, text, reaction):
         regex_str = '|'.join([
-            '^' + x if x.startswith('\\.') else x for x in slowa
+            '^' + x if x.startswith('\\.') else x for x in text
         ])
         regex = re.compile(regex_str, flags=re.IGNORECASE)
-        if isinstance(reakcja, str):
+        if isinstance(reaction, str):
 
-            def powiedz_cos(update):
-                update.message.reply_text(reakcja)
-            powiedz_cos.__doc__ = f'mówi `{reakcja}`'
-            self.reakcje[regex] = powiedz_cos
+            def say(update):
+                update.message.reply_text(reaction)
+            say.__doc__ = f'mówi `{reaction}`'
+            self.reactions[regex] = say
         else:
-            self.reakcje[regex] = reakcja
+            self.reactions[regex] = reaction
 
     # pozyczone od kolegi: https://github.com/yojo2/BillyMays/
     def czy(self, update):
@@ -220,35 +218,36 @@ class Mariusz:
             response = random.choice(responses_dunno)
         update.message.reply_text(response)
 
-    def wersja(self, update):
+
+    def version(self, update):
         '''Podaje pierwsze 6 znaków hasha commita wersji.'''
-        update.message.reply_text(zbuduj_opis_wersji())
+        update.message.reply_text(build_version_description())
 
     def help(self, update):
         '''Wyświetla pomoc'''
         msg = ''
-        for reakcja, funkcja in self.reakcje.items():
-            opis = funkcja.__doc__ or funkcja.__name__
-            msg += f'{reakcja.pattern} => {opis}\n'
+        for reaction, function in self.reactions.items():
+            description = function.__doc__ or function.__name__
+            msg += f'{reaction.pattern} => {description}\n'
         update.message.reply_text(msg, parse_mode=telegram.ParseMode.MARKDOWN)
 
-    def obsluz_meetup(self):
-        if self.ostatnie_sprawdzenie_meetupa + 600 > time.time():
+    def handle_meetup(self):
+        if self.last_meetup_check + 600 > time.time():
             return
-        wiadomosc = sformuluj_powiadomienie_meetupowe()
-        if not wiadomosc:
+        message = prepare_meetup_message()
+        if not message:
             return
-        self.ostatnie_sprawdzenie_meetupa = time.time()
-        if self.baza_chatow is None:
-            LOGGER.debug('obsluz_meetup(): self.baza_chatow is None')
+        self.last_meetup_check = time.time()
+        if self.chat_db is None:
+            LOGGER.debug('handle_meetup(): self.chat_db is None')
             return
-        for chat_id in self.baza_chatow.listuj():
-            if chat_id > 0:  # jeśli to priv a nie chat grupowy, pomiń
+        for chat_id in self.chat_db.list():
+            if chat_id > 0:  # skip if it's a private chat instead of a group
                 continue
             chat = self.bot.get_chat(chat_id=chat_id)
-            if chat.pinned_message and chat.pinned_message.text == wiadomosc:
+            if chat.pinned_message and chat.pinned_message.text == message:
                 continue
-            msg = self.bot.send_message(text=wiadomosc, chat_id=chat_id)
+            msg = self.bot.send_message(text=message, chat_id=chat_id)
             self.bot.pin_chat_message(
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
@@ -257,8 +256,8 @@ class Mariusz:
 
         while True:
             try:
-                self.obsluz_meetup()
-                self.obsluz_wiadomosci()
+                self.handle_meetup()
+                self.handle_messages()
             except NetworkError:
                 time.sleep(1)
             except Unauthorized:
@@ -266,28 +265,28 @@ class Mariusz:
                 self.update_id += 1
             except Exception:
                 formatted_traceback = traceback.format_exc()
-                wiadomosc = f'Bot umar. Traceback:\n\n{formatted_traceback}'
-                self.wyslij_do_wszystkich(wiadomosc)
+                message = f'Bot umar. Traceback:\n\n{formatted_traceback}'
+                self.send_to_all_chats(message)
                 raise
 
-    def obsluz_wiadomosci(self):
+    def handle_messages(self):
         for update in self.bot.get_updates(offset=self.update_id, timeout=10):
             self.update_id = update.update_id + 1
             if update.message is None or update.message.text is None:
                 continue
-            if self.baza_chatow:
-                self.baza_chatow.dopisz(update.message.chat_id)
-            for reakcja, funkcja in self.reakcje.items():
-                if reakcja.match(update.message.text):
-                    funkcja(update)
+            if self.chat_db:
+                self.chat_db.insert(update.message.chat_id)
+            for reaction, funtion in self.reactions.items():
+                if reaction.match(update.message.text):
+                    funtion(update)
 
 
 def main():
     logfmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(format=logfmt, level='DEBUG')
     api_key = os.environ['API_KEY']
-    sciezka_do_bazy_chatow = os.environ.get('SCIEZKA_DO_BAZY_CHATOW')
-    Mariusz(api_key, sciezka_do_bazy_chatow).run()
+    path_to_chat_db = os.environ.get('SCIEZKA_DO_BAZY_CHATOW')
+    Mariusz(api_key, path_to_chat_db).run()
 
 
 if __name__ == '__main__':
