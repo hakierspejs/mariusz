@@ -72,7 +72,6 @@ def normalize(sequence):
 
 def prepare_meetup_message():
 
-
     upcoming_events = sorted(
         [
             e for e in meetupscraper.get_upcoming_events('Hakierspejs-Łódź')
@@ -157,13 +156,13 @@ class Mariusz:
             normalize({'Łódź', 'Łodzi', 'łódzkie'}),
             'https://www.youtube.com/watch?v=IJ2kvZpJ_BU'
         )
-        self.on({'.wersja'}, self.version)
+        self.on({'\\.wersja'}, self.version)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
         self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
-        self.on({'.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
-        self.on({'.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
-        self.on({'.help', '.pomoc', '.komendy'}, self.help)
-        self.on({'.czy'}, self.czy)
+        self.on({'\\.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
+        self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
+        self.on({'\\.help', '\\.pomoc', '\\.komendy'}, self.help)
+        self.on({'\\.czy'}, self.czy)
 
     def send_to_all_chats(self, msg):
         if self.chat_db is None:
@@ -175,7 +174,7 @@ class Mariusz:
 
     def on(self, text, reaction):
         regex_str = '|'.join([
-            '^' + x if x.startswith('.') else x for x in text
+            '^' + x if x.startswith('\\.') else x for x in text
         ])
         regex = re.compile(regex_str, flags=re.IGNORECASE)
         if isinstance(reaction, str):
