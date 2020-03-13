@@ -1,0 +1,1 @@
+ - [ ] oświadczam, że nie zmieniałem kodu ALBO przetestowałem jak on się buduje i uruchamia pod Dockerem. Dotyczy także zmian kosmetycznych.
