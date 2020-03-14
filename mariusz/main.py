@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+'''Entry point of Mariusz, a Telegram chatbot of Hakierspejs Łódź.'''
+
 import sqlite3
 import logging
 import re
@@ -9,12 +11,8 @@ import os
 import subprocess
 import datetime
 import time
-import dateutil.parser
 import traceback
 
-import lxml.etree
-import lxml.html
-import requests
 from telegram.error import NetworkError, Unauthorized
 import telegram
 import meetupscraper
@@ -47,14 +45,21 @@ MONTH_NAMES = [
 ]
 
 
+MAIN_CHAT_ID = -1001361809256
+
+
 def describe_date(date):
+    '''Describes the date, according to the Polish grammar.'''
     month = MONTH_NAMES[date.month-1]
     return (
         f'{DAY_NAMES[date.weekday()]}, {date.day} {month}'
         f' {date.year} o godz {date.hour}:{str(date.minute).zfill(2)}'
     )
 
+
 def normalize_word(word):
+    '''Returns a version of the world with removed Polish diacritic
+    characters.'''
     output = ''
     for letter in word:
         output += POLISH_TO_LATIN.get(letter, letter)
@@ -62,16 +67,19 @@ def normalize_word(word):
     return output
 
 
-def normalize(sequence):
+def normalize(sequence_of_words):
+    '''Transforms a sequence of words into a set of words both with and without
+    Polish diacritic characters.'''
     output = set()
-    for word in sequence:
+    for word in sequence_of_words:
         output.add(word)
         output.add(normalize_word(word))
-    LOGGER.debug('normalize(%r)=%r', sequence, output)
+    LOGGER.debug('normalize(%r)=%r', sequence_of_words, output)
     return output
 
 
 def prepare_meetup_message():
+    '''Prepares a message about the upcoming meetup.'''
 
     upcoming_events = sorted(
         [
@@ -80,7 +88,7 @@ def prepare_meetup_message():
         ], key=lambda e: e.date
     )
     if not upcoming_events:
-        return
+        return ''
     next_meeting = upcoming_events[0]
 
     return (
@@ -91,13 +99,14 @@ def prepare_meetup_message():
 
 
 def build_version_description():
+    '''Describes the current version of the bot.'''
     try:
-        with open('/tmp/commit-id') as f:
-            version = f.read().strip()
-        with open('/tmp/commit-no') as f:
-            numer = f.read().strip()
-        with open('/tmp/commit-date') as f:
-            date = f.read().strip()
+        with open('/tmp/commit-id') as fh:
+            version = fh.read().strip()
+        with open('/tmp/commit-no') as fh:
+            numer = fh.read().strip()
+        with open('/tmp/commit-date') as fh:
+            date = fh.read().strip()
     except FileNotFoundError:
         version_b = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
         version = version_b.decode()
@@ -111,14 +120,18 @@ def build_version_description():
 
 class ChatDb:
 
+    '''Collects a list of chats that the bot ever spoke with.'''
+
     def __init__(self, fname):
         self.db = sqlite3.connect(fname)
         self.load_schema()
 
     def load_schema(self):
+        '''Initializes the database by creating required entities.'''
         self.db.execute('CREATE TABLE IF NOT EXISTS chat_ids (chat_id TEXT);')
 
     def insert(self, chat_id):
+        '''Inserts a chat into the set.'''
         if int(chat_id) in self.list():
             return
         sql = 'INSERT INTO chat_ids(chat_id) VALUES (?)'
@@ -127,11 +140,14 @@ class ChatDb:
         self.db.commit()
 
     def list(self):
+        '''Generated a sequence of chats that the bot ever spoke with.'''
         for row in self.db.execute('SELECT DISTINCT chat_id FROM chat_ids'):
             yield int(row[0])
 
 
 class Mariusz:
+
+    '''Main class of the bot. Handles all the commands.'''
 
     def __init__(self, api_key, path_to_chat_db):
         self.update_id = None
@@ -167,14 +183,16 @@ class Mariusz:
         self.on({'\\.covid', '\\.coronavirus'}, self.covid)
 
     def send_to_all_chats(self, msg):
+        '''Sends a message to all the chats other than the main one.'''
         if self.chat_db is None:
             return
         for chat_id in self.chat_db.list():
-            if chat_id == -1001361809256:
+            if chat_id == MAIN_CHAT_ID:
                 continue
             self.bot.send_message(text=msg, chat_id=chat_id)
 
     def on(self, text, reaction):
+        '''Registers a reaction to a given text message.'''
         regex_str = '|'.join([
             '^' + x if x.startswith('\\.') else x for x in text
         ])
@@ -229,7 +247,6 @@ class Mariusz:
             response = random.choice(responses_dunno)
         update.message.reply_text(response)
 
-
     def version(self, update):
         '''Podaje pierwsze 6 znaków hasha commita wersji.'''
         update.message.reply_text(build_version_description())
@@ -242,7 +259,9 @@ class Mariusz:
             msg += f'{reaction.pattern} => {description}\n'
         update.message.reply_text(msg, parse_mode=telegram.ParseMode.MARKDOWN)
 
-    def handle_meetup(self):
+    def maybe_update_meetup_message(self):
+        '''Determines whether current pinned meetup message should be replaced
+        and updates it if necessary.'''
         if self.last_meetup_check + 600 > time.time():
             return
         message = prepare_meetup_message()
@@ -250,7 +269,7 @@ class Mariusz:
             return
         self.last_meetup_check = time.time()
         if self.chat_db is None:
-            LOGGER.debug('handle_meetup(): self.chat_db is None')
+            LOGGER.debug('maybe_update_meetup_message(): self.chat_db is None')
             return
         for chat_id in self.chat_db.list():
             if chat_id > 0:  # skip if it's a private chat instead of a group
@@ -265,9 +284,11 @@ class Mariusz:
 
     def run(self):
 
+        '''Bot's main loop.'''
+
         while True:
             try:
-                self.handle_meetup()
+                self.maybe_update_meetup_message()
                 self.handle_messages()
             except NetworkError:
                 time.sleep(1)
@@ -281,6 +302,7 @@ class Mariusz:
                 raise
 
     def handle_messages(self):
+        '''For each unread message, determines whether and how to react.'''
         for update in self.bot.get_updates(offset=self.update_id, timeout=10):
             self.update_id = update.update_id + 1
             if update.message is None or update.message.text is None:
@@ -293,6 +315,8 @@ class Mariusz:
 
 
 def main():
+    '''Program's entry point. Defined so that we don't polute the global
+    namespace with extra variables.'''
     logfmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(format=logfmt, level='DEBUG')
     api_key = os.environ['API_KEY']
