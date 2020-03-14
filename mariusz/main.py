@@ -19,6 +19,7 @@ from telegram.error import NetworkError, Unauthorized
 import telegram
 import meetupscraper
 
+import mariusz.coronavirus as coronavirus
 
 LOGGER = logging.getLogger()
 
@@ -163,6 +164,7 @@ class Mariusz:
         self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
         self.on({'\\.help', '\\.pomoc', '\\.komendy'}, self.help)
         self.on({'\\.czy'}, self.czy)
+        self.on({'\\.covid', '\\.coronavirus'}, self.covid)
 
     def send_to_all_chats(self, msg):
         if self.chat_db is None:
@@ -185,6 +187,15 @@ class Mariusz:
             self.reactions[regex] = say
         else:
             self.reactions[regex] = reaction
+
+    def covid(self, update):
+        '''Statystyki związane z SARS-CoV-2'''
+        arg = coronavirus.covid_arg(update.message.text)
+        if arg is None:
+            update.message.reply_text(str(coronavirus.world()))
+            return
+
+        update.message.reply_text(str(coronavirus.country(arg)))
 
     # pozyczone od kolegi: https://github.com/yojo2/BillyMays/
     def czy(self, update):
