@@ -1,3 +1,5 @@
+'''Describes the logic of the .covid command.'''
+
 import requests
 import re
 from functools import partial
@@ -79,7 +81,7 @@ def covid_arg(text):
             r'(?<=^\.covid )(40[0-5]|[0-3][0-9][0-9]|[0-9][0-9]|[0-9])(?=)$')
     result = regex.findall(text)
 
-    if not len(result):
+    if len(result) == 0:
         return None
 
     return int(result[0])
