@@ -1,3 +1,5 @@
+'''Package description for Mariusz. Allows us to `pip install` the bot.'''
+
 from setuptools import setup, find_packages
 
 setup(name='mariusz',
