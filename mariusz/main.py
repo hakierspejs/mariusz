@@ -304,7 +304,7 @@ class Mariusz:
             for chat_id in self.chat_db.list():
                 if chat_id > 0:
                     continue  # skip if it's a private chat instead of a group
-                msg = self.bot.send_message(text=msg, chat_id=chat_id)
+                self.bot.send_message(text=msg, chat_id=chat_id)
                 self.mumble_state = cnt
                 self.mumble_last_update = now
 
