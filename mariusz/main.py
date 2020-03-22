@@ -296,7 +296,7 @@ class Mariusz:
             return
         cnt = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
         state_changed = cnt != self.mumble_state
-        if state_changed and now - self.mumble_last_update < 60:
+        if state_changed and abs(now - self.mumble_last_update) > 60:
             if cnt > self.mumble_state:
                 msg = 'Ktoś się pojawił na Mumble. Liczba userów: ' + str(cnt)
             else:
@@ -304,8 +304,6 @@ class Mariusz:
             for chat_id in self.chat_db.list():
                 if chat_id > 0:
                     continue  # skip if it's a private chat instead of a group
-                if chat_id == MAIN_CHAT_ID:
-                    continue
                 msg = self.bot.send_message(text=msg, chat_id=chat_id)
                 self.mumble_state = cnt
                 self.mumble_last_update = now
