@@ -295,15 +295,17 @@ class Mariusz:
         if now - self.mumble_last_check < 60:
             return
         cnt = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
-        state_changed = bool(cnt) != bool(self.mumble_state)
+        state_changed = cnt != self.mumble_state
         if state_changed and now - self.mumble_last_update < 60:
-            if bool(cnt):
-                msg = 'Ktoś się pojawił na Mumble: ' + MUMBLE_SERVER
+            if cnt > self.mumble_state:
+                msg = 'Ktoś się pojawił na Mumble. Liczba userów: ' + str(cnt)
             else:
-                msg = 'Nasz serwer Mumble jest dalej pusty.'
+                msg = 'Ktoś opuścił Mumble. Liczba userów: ' + str(cnt)
             for chat_id in self.chat_db.list():
                 if chat_id > 0:
                     continue  # skip if it's a private chat instead of a group
+                if chat_id == MAIN_CHAT_ID:
+                    continue
                 msg = self.bot.send_message(text=msg, chat_id=chat_id)
                 self.mumble_state = cnt
                 self.mumble_last_update = now
