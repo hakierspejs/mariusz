@@ -18,8 +18,11 @@ import telegram
 import meetupscraper
 
 import mariusz.coronavirus as coronavirus
+import mariusz.mumble
 
 LOGGER = logging.getLogger()
+
+MUMBLE_SERVER = 'junkcc.net'
 
 POLISH_TO_LATIN = {
     'ą': 'a', 'Ą': 'A',
@@ -154,6 +157,9 @@ class Mariusz:
         self.reactions = {}
         self.last_meetup_check = 0
         self.bot = telegram.Bot(api_key)
+        self.mumble_state = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
+        self.mumble_last_update = time.time()
+        self.mumble_last_check = time.time()
 
         try:
             self.update_id = self.bot.get_updates()[0].update_id
@@ -282,6 +288,26 @@ class Mariusz:
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
 
+    def maybe_update_mumble(self):
+        '''Check if Mumble state changed: we either transitioned from 0 to
+        nonzero or the other way around.'''
+        now = time.time()
+        if now - self.mumble_last_check < 60:
+            return
+        cnt = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
+        state_changed = cnt != self.mumble_state
+        if state_changed and abs(now - self.mumble_last_update) > 60:
+            if cnt > self.mumble_state:
+                msg = 'Ktoś się pojawił na Mumble. Liczba userów: ' + str(cnt)
+            else:
+                msg = 'Ktoś opuścił Mumble. Liczba userów: ' + str(cnt)
+            for chat_id in self.chat_db.list():
+                if chat_id > 0:
+                    continue  # skip if it's a private chat instead of a group
+                msg = self.bot.send_message(text=msg, chat_id=chat_id)
+                self.mumble_state = cnt
+                self.mumble_last_update = now
+
     def run(self):
 
         '''Bot's main loop.'''
@@ -289,6 +315,7 @@ class Mariusz:
         while True:
             try:
                 self.maybe_update_meetup_message()
+                self.maybe_update_mumble()
                 self.handle_messages()
             except NetworkError:
                 time.sleep(1)
