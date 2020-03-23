@@ -22,7 +22,7 @@ def build_wiki_message():
     wiki_url = 'https://github.com/hakierspejs/wiki/wiki.atom'
     latest = get_wiki_entries(wiki_url).pop()
     title_raw = E.ETXPath('.//' + NS + 'link/@href')(latest)[0]
-    title = title_raw.split('/hakierspejs/wiki/wiki/')[1]
+    title = title_raw.split('/hakierspejs/wiki/wiki')[1] or 'Home'
     author = E.ETXPath('.//' + NS + 'author/*/text()')(latest)[0]
     commit = E.ETXPath('.//' + NS + 'id/text()')(latest)[0].split('/')[-1]
     base_url = 'https://github.com/hakierspejs/wiki/wiki'
