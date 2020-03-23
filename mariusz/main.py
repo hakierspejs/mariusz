@@ -300,8 +300,8 @@ class Mariusz:
         msg = mariusz.wiki.build_wiki_message()
         if self.wiki_msg != msg and abs(now - self.wiki_last_update) > 60:
             for chat_id in self.chat_db.list():
-                if chat_id > 0:
-                    continue  # skip if it's a private chat instead of a group
+                if chat_id == MAIN_CHAT_ID:
+                    continue  # don't spam our main group
                 self.bot.send_message(text=msg, chat_id=chat_id)
                 self.wiki_msg = msg
                 self.wiki_last_update = now
