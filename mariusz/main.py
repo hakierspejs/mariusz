@@ -18,6 +18,7 @@ import telegram
 import meetupscraper
 
 import mariusz.coronavirus as coronavirus
+import mariusz.wiki
 import mariusz.mumble
 
 LOGGER = logging.getLogger()
@@ -160,6 +161,9 @@ class Mariusz:
         self.mumble_state = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
         self.mumble_last_update = time.time()
         self.mumble_last_check = time.time()
+        self.wiki_last_update = time.time()
+        self.wiki_last_check = time.time()
+        self.wiki_msg = mariusz.wiki.build_wiki_message()
 
         try:
             self.update_id = self.bot.get_updates()[0].update_id
@@ -288,6 +292,20 @@ class Mariusz:
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
 
+    def maybe_update_wiki(self):
+        '''Check if anybody wrote anything on our wiki.'''
+        now = time.time()
+        if now - self.wiki_last_check < 60:
+            return
+        msg = mariusz.wiki.build_wiki_message()
+        if self.wiki_msg != msg and abs(now - self.wiki_last_update) > 60:
+            for chat_id in self.chat_db.list():
+                if chat_id > 0:
+                    continue  # skip if it's a private chat instead of a group
+                self.bot.send_message(text=msg, chat_id=chat_id)
+                self.wiki_msg = msg
+                self.wiki_last_update = now
+
     def maybe_update_mumble(self):
         '''Check if Mumble state changed: we either transitioned from 0 to
         nonzero or the other way around.'''
@@ -316,6 +334,7 @@ class Mariusz:
             try:
                 self.maybe_update_meetup_message()
                 self.maybe_update_mumble()
+                self.maybe_update_wiki()
                 self.handle_messages()
             except NetworkError:
                 time.sleep(1)

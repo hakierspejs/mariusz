@@ -1,3 +1,4 @@
 [MASTER]
 # bad-continuation: flake8 and pylint disagree about how indentation should work
-disable=no-self-use,invalid-name,bad-continuation,wrong-import-order,too-many-instance-attributes
+# c-extension-no-member: caused by lxml.etree.fromstring
+disable=no-self-use,invalid-name,bad-continuation,wrong-import-order,too-many-instance-attributes,c-extension-no-member
