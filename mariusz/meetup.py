@@ -1,3 +1,6 @@
+'''A module that prepares a message about our upcoming meetup's date and
+location.'''
+
 import datetime
 
 import meetupscraper
