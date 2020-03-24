@@ -268,7 +268,7 @@ class Mariusz:
     def maybe_update_meetup_message(self):
         '''Determines whether current pinned meetup message should be replaced
         and updates it if necessary.'''
-        if self.last_meetup_check + 600 > time.time():
+        if self.last_meetup_check + (3600 * 6) > time.time():
             return
         message = prepare_meetup_message()
         if not message:
