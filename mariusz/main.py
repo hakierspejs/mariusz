@@ -302,6 +302,7 @@ class Mariusz:
                 formatted_traceback = traceback.format_exc()
                 message = f'Bot umar. Traceback:\n\n{formatted_traceback}'
                 self.send_to_all_chats(message)
+                time.sleep(600)
                 raise
 
     def handle_messages(self):
