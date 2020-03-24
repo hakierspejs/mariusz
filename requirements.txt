@@ -3,4 +3,4 @@ python-dateutil
 lxml
 requests
 humanize==2.0.0
-git+https://github.com/hakierspejs/meetupscraper
+meetupscraper>=0.4
