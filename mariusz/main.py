@@ -9,14 +9,13 @@ import re
 import random
 import os
 import subprocess
-import datetime
 import time
 import traceback
 
 from telegram.error import NetworkError, Unauthorized
 import telegram
-import meetupscraper
 
+import mariusz.meetup
 import mariusz.coronavirus as coronavirus
 import mariusz.mumble
 
@@ -36,28 +35,7 @@ POLISH_TO_LATIN = {
     'ż': 'z', 'Ż': 'Z',
 }
 
-DAY_NAMES = [
-    'poniedziałek', 'wtorek', 'środa',
-    'czwartek', 'piątek', 'sobota', 'niedziela'
-]
-
-
-MONTH_NAMES = [
-    'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca',
-    'sierpnia', 'września', 'października', 'listopada', 'grudnia'
-]
-
-
 MAIN_CHAT_ID = -1001361809256
-
-
-def describe_date(date):
-    '''Describes the date, according to the Polish grammar.'''
-    month = MONTH_NAMES[date.month-1]
-    return (
-        f'{DAY_NAMES[date.weekday()]}, {date.day} {month}'
-        f' {date.year} o godz {date.hour}:{str(date.minute).zfill(2)}'
-    )
 
 
 def normalize_word(word):
@@ -79,26 +57,6 @@ def normalize(sequence_of_words):
         output.add(normalize_word(word))
     LOGGER.debug('normalize(%r)=%r', sequence_of_words, output)
     return output
-
-
-def prepare_meetup_message():
-    '''Prepares a message about the upcoming meetup.'''
-
-    upcoming_events = sorted(
-        [
-            e for e in meetupscraper.get_upcoming_events('Hakierspejs-Łódź')
-            if (e.date + datetime.timedelta(days=1)) > datetime.datetime.now()
-        ], key=lambda e: e.date
-    )
-    if not upcoming_events:
-        return ''
-    next_meeting = upcoming_events[0]
-
-    return (
-        f'Nast. spotkanie: {describe_date(next_meeting.date)}'
-        f' w {next_meeting.venue.name} ({next_meeting.venue.street}). '
-        f'Więcej szczegółów: {next_meeting.url}'
-    )
 
 
 def build_version_description():
@@ -270,7 +228,7 @@ class Mariusz:
         and updates it if necessary.'''
         if self.last_meetup_check + 600 > time.time():
             return
-        message = prepare_meetup_message()
+        message = mariusz.meetup.prepare_meetup_message()
         if not message:
             return
         self.last_meetup_check = time.time()
@@ -309,7 +267,6 @@ class Mariusz:
                 self.mumble_last_update = now
 
     def run(self):
-
         '''Bot's main loop.'''
 
         while True:
