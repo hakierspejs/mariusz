@@ -29,7 +29,7 @@ def build_wiki_message():
     base_url = 'https://github.com/hakierspejs/wiki/wiki'
     url = base_url + f'/{title}/_compare/{commit}%5E...{commit}'
     return (
-        f'Wiki: {author} zmienił "{title.replace("-", " ")}".\n\n'
+        f'Wiki: {author} zmienił(a) "{title.replace("-", " ")}".\n\n'
         f'Sprawdź zmianę tutaj: {url}'
     )
 
