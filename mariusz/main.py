@@ -148,7 +148,7 @@ class Mariusz:
         self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
         self.on({'\\.help', '\\.pomoc', '\\.komendy'}, self.help)
         self.on({'\\.czy'}, self.czy)
-        self.on({'\\.covid', '\\.coronavirus'}, self.covid)
+        self.on({'\\.covid', '\\.coronavirus'}, 'Komenda wyłączona')
 
     def send_to_all_chats(self, msg):
         '''Sends a message to all the chats other than the main one.'''
