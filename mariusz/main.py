@@ -256,7 +256,10 @@ class Mariusz:
         if now - self.wiki_last_check < 60:
             return
         msg = mariusz.wiki.build_wiki_message()
-        if self.wiki_msg != msg and abs(now - self.wiki_last_update) > 60:
+        differs = self.wiki_msg != msg
+        late_enough = abs(now - self.wiki_last_update) > 60
+        no_error = msg and self.wiki_msg
+        if differs and late_enough and no_error:
             for chat_id in self.chat_db.list():
                 if chat_id == MAIN_CHAT_ID:
                     continue  # don't spam our main group
