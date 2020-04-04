@@ -8,7 +8,7 @@ from humanize import intcomma
 from dataclasses import dataclass
 
 
-_API = 'https://coronavirus-tracker-api.herokuapp.com/all'
+_API = 'https://coronavirus-tracker-api.herokuapp.com/v2/locations'
 
 
 def tracker_api():
@@ -78,7 +78,8 @@ def covid_arg(text):
 
     '''
     regex = re.compile(
-            r'(?<=^\.covid )(40[0-5]|[0-3][0-9][0-9]|[0-9][0-9]|[0-9])(?=)$')
+        r"(?<=^\.covid )(25[0-7]|2[0-4][0-9]|"
+        r"1[0-9][0-9]|[0-9][0-9]|[0-9])(?=)$")
     result = regex.findall(text)
 
     if len(result) == 0:
@@ -90,7 +91,7 @@ def covid_arg(text):
 def _build_country_location(country_id, latest_stats):
     '''Builds information about country with given country id from
     given API call.'''
-    country_info = latest_stats['confirmed']['locations'][country_id]
+    country_info = latest_stats['locations'][country_id]
     info_list = []
 
     country_name = country_info['country']
@@ -107,4 +108,4 @@ def _build_country_location(country_id, latest_stats):
 
 def _country_stats(country_id, latest_stats, field):
     '''Helper function for retrieving information from API call.'''
-    return latest_stats[field]['locations'][country_id]['latest']
+    return latest_stats['locations'][country_id]['latest'][field]
