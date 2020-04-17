@@ -1,5 +1,7 @@
 '''Common functions used by our bot in order to process Github wikis.'''
 
+import urllib.parse
+
 import dateutil.parser
 import lxml.etree as E
 import requests
@@ -26,7 +28,7 @@ def build_wiki_message():
         return ''
     title_raw = E.ETXPath('.//' + NS + 'link/@href')(latest)[0]
     title = title_raw.split('/hakierspejs/wiki/wiki')[1] or 'Home'
-    title = title.lstrip('/')
+    title = urllib.parse.unquote(title.lstrip('/'))
     author = E.ETXPath('.//' + NS + 'author/*/text()')(latest)[0]
     commit = E.ETXPath('.//' + NS + 'id/text()')(latest)[0].split('/')[-1]
     base_url = 'https://github.com/hakierspejs/wiki/wiki'
