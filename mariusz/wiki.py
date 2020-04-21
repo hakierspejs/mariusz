@@ -23,7 +23,10 @@ def build_wiki_message():
     '''Builds a message describing the current state of the wiki.'''
     wiki_url = 'https://github.com/hakierspejs/wiki/wiki.atom'
     try:
-        latest = get_wiki_entries(wiki_url).pop()
+        entries = get_wiki_entries(wiki_url)
+        if not entries:
+            return ''
+        latest = entries.pop()
     except E.XMLSyntaxError:
         return ''
     title_raw = E.ETXPath('.//' + NS + 'link/@href')(latest)[0]
