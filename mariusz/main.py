@@ -161,9 +161,10 @@ class Mariusz:
 
     def try_send_message(self, *args, **kwargs):
         try:
-            self.bot.send_message(*args, **kwargs)
+            return self.bot.send_message(*args, **kwargs)
         except telegram.error.Unauthorized as e:
             LOGGER.exception(e)
+            return None
 
     def on(self, text, reaction):
         '''Registers a reaction to a given text message.'''
@@ -252,6 +253,8 @@ class Mariusz:
             if chat.pinned_message and chat.pinned_message.text == message:
                 continue
             msg = self.try_send_message(text=message, chat_id=chat_id)
+            if not msg:
+                continue
             self.bot.pin_chat_message(
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
