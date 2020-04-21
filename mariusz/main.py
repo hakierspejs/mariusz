@@ -310,7 +310,8 @@ class Mariusz:
                 time.sleep(1)
             except Unauthorized:
                 # The user has removed or blocked the bot.
-                self.update_id += 1
+                if self.update_id:
+                    self.update_id += 1
             except Exception:
                 formatted_traceback = traceback.format_exc()
                 message = f'Bot umar. Traceback:\n\n{formatted_traceback}'
