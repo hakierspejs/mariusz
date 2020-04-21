@@ -160,6 +160,7 @@ class Mariusz:
             self.try_send_message(text=msg, chat_id=chat_id)
 
     def try_send_message(self, *args, **kwargs):
+        '''A wrapper for send_message that silences Unauthorized exception.'''
         try:
             return self.bot.send_message(*args, **kwargs)
         except telegram.error.Unauthorized as e:
