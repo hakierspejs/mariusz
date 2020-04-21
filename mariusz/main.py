@@ -157,7 +157,13 @@ class Mariusz:
         for chat_id in self.chat_db.list():
             if chat_id == MAIN_CHAT_ID:
                 continue
-            self.bot.send_message(text=msg, chat_id=chat_id)
+            self.try_send_message(text=msg, chat_id=chat_id)
+
+    def try_send_message(self, *args, **kwargs):
+        try:
+            self.bot.send_message(*args, **kwargs)
+        except telegram.error.Unauthorized as e:
+            LOGGER.exception(e)
 
     def on(self, text, reaction):
         '''Registers a reaction to a given text message.'''
@@ -245,7 +251,7 @@ class Mariusz:
             chat = self.bot.get_chat(chat_id=chat_id)
             if chat.pinned_message and chat.pinned_message.text == message:
                 continue
-            msg = self.bot.send_message(text=message, chat_id=chat_id)
+            msg = self.try_send_message(text=message, chat_id=chat_id)
             self.bot.pin_chat_message(
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
@@ -263,7 +269,7 @@ class Mariusz:
             for chat_id in self.chat_db.list():
                 if chat_id == MAIN_CHAT_ID:
                     continue  # don't spam our main group
-                self.bot.send_message(text=msg, chat_id=chat_id)
+                self.try_send_message(text=msg, chat_id=chat_id)
                 self.wiki_msg = msg
                 self.wiki_last_update = now
 
@@ -283,7 +289,7 @@ class Mariusz:
             for chat_id in self.chat_db.list():
                 if chat_id > 0:
                     continue  # skip if it's a private chat instead of a group
-                self.bot.send_message(text=msg, chat_id=chat_id)
+                self.try_send_message(text=msg, chat_id=chat_id)
                 self.mumble_state = cnt
                 self.mumble_last_update = now
 
