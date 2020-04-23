@@ -11,6 +11,7 @@ import os
 import subprocess
 import time
 import traceback
+import signal
 
 from telegram.error import NetworkError, Unauthorized
 import telegram
@@ -307,7 +308,10 @@ class Mariusz:
 
     def handle_messages(self):
         '''For each unread message, determines whether and how to react.'''
-        for update in self.bot.get_updates(offset=self.update_id, timeout=10):
+        signal.alarm(20)
+        self.bot.get_updates(offset=self.update_id, timeout=10)
+        signal.alarm(0)
+        for update in updates:
             self.update_id = update.update_id + 1
             if update.message is None or update.message.text is None:
                 continue
