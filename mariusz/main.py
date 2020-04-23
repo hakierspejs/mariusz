@@ -149,7 +149,7 @@ class Mariusz:
         self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
         self.on({'\\.help', '\\.pomoc', '\\.komendy'}, self.help)
         self.on({'\\.czy'}, self.czy)
-        self.on({'\\.covid', '\\.coronavirus'}, 'Komenda wyłączona')
+        self.on({'\\.covid', '\\.coronavirus'}, 'Komenda wyłączona.')
 
     def send_to_all_chats(self, msg):
         '''Sends a message to all the chats other than the main one.'''
@@ -158,7 +158,15 @@ class Mariusz:
         for chat_id in self.chat_db.list():
             if chat_id == MAIN_CHAT_ID:
                 continue
-            self.bot.send_message(text=msg, chat_id=chat_id)
+            self.try_send_message(text=msg, chat_id=chat_id)
+
+    def try_send_message(self, *args, **kwargs):
+        '''A wrapper for send_message that silences Unauthorized exception.'''
+        try:
+            return self.bot.send_message(*args, **kwargs)
+        except telegram.error.Unauthorized as e:
+            LOGGER.exception(e)
+            return None
 
     def on(self, text, reaction):
         '''Registers a reaction to a given text message.'''
@@ -246,7 +254,9 @@ class Mariusz:
             chat = self.bot.get_chat(chat_id=chat_id)
             if chat.pinned_message and chat.pinned_message.text == message:
                 continue
-            msg = self.bot.send_message(text=message, chat_id=chat_id)
+            msg = self.try_send_message(text=message, chat_id=chat_id)
+            if not msg:
+                continue
             self.bot.pin_chat_message(
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
@@ -257,11 +267,14 @@ class Mariusz:
         if now - self.wiki_last_check < 60:
             return
         msg = mariusz.wiki.build_wiki_message()
-        if self.wiki_msg != msg and abs(now - self.wiki_last_update) > 60:
+        differs = self.wiki_msg != msg
+        late_enough = abs(now - self.wiki_last_update) > 60
+        no_error = msg and self.wiki_msg
+        if differs and late_enough and no_error:
             for chat_id in self.chat_db.list():
                 if chat_id == MAIN_CHAT_ID:
                     continue  # don't spam our main group
-                self.bot.send_message(text=msg, chat_id=chat_id)
+                self.try_send_message(text=msg, chat_id=chat_id)
                 self.wiki_msg = msg
                 self.wiki_last_update = now
 
@@ -281,7 +294,7 @@ class Mariusz:
             for chat_id in self.chat_db.list():
                 if chat_id > 0:
                     continue  # skip if it's a private chat instead of a group
-                self.bot.send_message(text=msg, chat_id=chat_id)
+                self.try_send_message(text=msg, chat_id=chat_id)
                 self.mumble_state = cnt
                 self.mumble_last_update = now
 
@@ -298,7 +311,8 @@ class Mariusz:
                 time.sleep(1)
             except Unauthorized:
                 # The user has removed or blocked the bot.
-                self.update_id += 1
+                if self.update_id:
+                    self.update_id += 1
             except Exception:
                 formatted_traceback = traceback.format_exc()
                 message = f'Bot umar. Traceback:\n\n{formatted_traceback}'
@@ -309,10 +323,11 @@ class Mariusz:
     def handle_messages(self):
         '''For each unread message, determines whether and how to react.'''
         signal.alarm(20)
-        self.bot.get_updates(offset=self.update_id, timeout=10)
+        updates = self.bot.get_updates(offset=self.update_id, timeout=10)
         signal.alarm(0)
         for update in updates:
-            self.update_id = update.update_id + 1
+            if update.update_id:
+                self.update_id = update.update_id + 1
             if update.message is None or update.message.text is None:
                 continue
             if self.chat_db:
