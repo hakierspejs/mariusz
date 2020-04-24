@@ -164,7 +164,7 @@ class Mariusz:
         '''A wrapper for send_message that silences Unauthorized exception.'''
         try:
             return self.bot.send_message(*args, **kwargs)
-        except telegram.error.Unauthorized as e:
+        except (telegram.error.Unauthorized, telegram.error.BadRequest) as e:
             LOGGER.exception(e)
             return None
 
