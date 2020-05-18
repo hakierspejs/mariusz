@@ -44,10 +44,16 @@ def prepare_meetup_message():
     else:
         place = f'w {next_meeting.venue.name} ({next_meeting.venue.street})'
 
-    return (
+    ret = (
         f'Nast. spotkanie: {describe_date(next_meeting.date)} {place}. '
         f'Więcej szczegółów: {next_meeting.url}'
     )
+
+    time_left = (next_meeting.date - datetime.datetime.now()).total_seconds()
+    if time_left < (60 * 60 * 3):
+        ret = 'Za <3h n' + ret[1:]
+
+    return ret
 
 
 if __name__ == '__main__':
