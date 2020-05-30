@@ -239,10 +239,10 @@ class Mariusz:
     def maybe_update_meetup_message(self):
         '''Determines whether current pinned meetup message should be replaced
         and updates it if necessary.'''
-        if self.last_meetup_check + (3600 * 6) > time.time():
+        if self.last_meetup_check + (3600 * 1) > time.time():
             LOGGER.debug(
                 'maybe_update_meetup_message: '
-                'self.last_meetup_check + (3600 * 6) > time.time()'
+                'self.last_meetup_check + (3600 * 1) > time.time()'
             )
             return
         message = mariusz.meetup.prepare_meetup_message()
