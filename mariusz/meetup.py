@@ -51,7 +51,7 @@ def prepare_meetup_message():
 
     time_left = (next_meeting.date - datetime.datetime.now()).total_seconds()
     if time_left < (60 * 60 * 3):
-        ret = 'Za <3h n' + ret[1:]
+        ret = 'Niedługo n' + ret[1:]
 
     return ret
 
