@@ -293,7 +293,7 @@ class Mariusz:
         now = time.time()
         if now - self.mumble_last_check < 60:
             return
-        cnt = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
+        cnt = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)-1
         state_changed = cnt != self.mumble_state
         if state_changed and abs(now - self.mumble_last_update) > 60:
             if cnt > self.mumble_state:
