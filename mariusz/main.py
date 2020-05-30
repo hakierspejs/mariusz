@@ -240,9 +240,14 @@ class Mariusz:
         '''Determines whether current pinned meetup message should be replaced
         and updates it if necessary.'''
         if self.last_meetup_check + (3600 * 6) > time.time():
+            LOGGER.debug(
+                'maybe_update_meetup_message: '
+                'self.last_meetup_check + (3600 * 6) > time.time()'
+            )
             return
         message = mariusz.meetup.prepare_meetup_message()
         if not message:
+            LOGGER.debug('maybe_update_meetup_message(): not message')
             return
         self.last_meetup_check = time.time()
         if self.chat_db is None:
@@ -250,13 +255,17 @@ class Mariusz:
             return
         for chat_id in self.chat_db.list():
             if chat_id > 0:  # skip if it's a private chat instead of a group
+                LOGGER.debug('maybe_update_meetup_message(): chat_id > 0')
                 continue
             chat = self.bot.get_chat(chat_id=chat_id)
             if chat.pinned_message and chat.pinned_message.text == message:
+                LOGGER.debug('maybe_update_meetup_message(): nihil novi')
                 continue
             msg = self.try_send_message(text=message, chat_id=chat_id)
             if not msg:
+                LOGGER.debug('maybe_update_meetup_message(): not msg')
                 continue
+            LOGGER.debug('maybe_update_meetup_message(): updating...')
             self.bot.pin_chat_message(
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
