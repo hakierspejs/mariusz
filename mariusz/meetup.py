@@ -42,7 +42,9 @@ def prepare_meetup_message():
     if next_meeting.venue.name.lower() == 'online event':
         place = '(telekonferencja)'
     else:
-        place = f'w {next_meeting.venue.name} ({next_meeting.venue.street})'
+        place = f'w {next_meeting.venue.name}'
+        if next_meeting.venue.street:
+            place += f'({next_meeting.venue.street})'
 
     ret = (
         f'Nast. spotkanie: {describe_date(next_meeting.date)} {place}. '
