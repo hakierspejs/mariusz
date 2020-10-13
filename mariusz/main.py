@@ -147,6 +147,7 @@ class Mariusz:
         self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
         self.on({'\\.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
         self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
+        self.on({'\\.co'}, 'https://www.youtube.com/watch?v=YeIGdcSM5NY')
         self.on({'\\.help', '\\.pomoc', '\\.komendy'}, self.help)
         self.on({'\\.czy'}, self.czy)
         self.on({'\\.covid', '\\.coronavirus'}, 'Komenda wyłączona.')
