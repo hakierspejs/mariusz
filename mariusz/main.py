@@ -267,6 +267,7 @@ class Mariusz:
                 LOGGER.debug('maybe_update_meetup_message(): not msg')
                 continue
             LOGGER.debug('maybe_update_meetup_message(): updating...')
+            self.bot.unpin_chat_message(chat_id=msg.chat_id)
             self.bot.pin_chat_message(
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
