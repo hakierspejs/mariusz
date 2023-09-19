@@ -12,6 +12,7 @@ import subprocess
 import time
 import traceback
 import signal
+import urllib.parse
 
 from telegram.error import NetworkError, Unauthorized
 import telegram
@@ -95,6 +96,7 @@ class ChatDb:
 
     def insert(self, chat_id):
         '''Inserts a chat into the set.'''
+        return
         if int(chat_id) in self.list():
             return
         sql = 'INSERT INTO chat_ids(chat_id) VALUES (?)'
@@ -117,6 +119,7 @@ class Mariusz:
         self.reactions = {}
         self.last_meetup_check = 0
         self.bot = telegram.Bot(api_key)
+        self.meetup_exception_counter = 0
         self.mumble_state = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
         self.mumble_last_update = time.time()
         self.mumble_last_check = time.time()
@@ -144,7 +147,8 @@ class Mariusz:
         )
         self.on({'\\.wersja'}, self.version)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
-        self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
+        self.on({'czy mamy'}, self.czymamy)
+#        self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
         self.on({'\\.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
         self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
         self.on({'\\.co'}, 'https://www.youtube.com/watch?v=YeIGdcSM5NY')
@@ -229,6 +233,12 @@ class Mariusz:
         '''Podaje pierwsze 6 znaków hasha commita wersji.'''
         update.message.reply_text(build_version_description())
 
+    def czymamy(self, update):
+        text = update.message.text.lower()
+        q = text.split('czy mamy ')[-1]
+        url = 'https://g.hs-ldz.pl/search?query=' + urllib.parse.quote(q)
+        update.message.reply_text(url)
+
     def help(self, update):
         '''Wyświetla pomoc'''
         msg = ''
@@ -246,7 +256,15 @@ class Mariusz:
                 'self.last_meetup_check + (3600 * 1) > time.time()'
             )
             return
-        message = mariusz.meetup.prepare_meetup_message()
+        try:
+            message = mariusz.meetup.prepare_meetup_message()
+            self.meetup_exception_counter = 0
+        except Exception:
+            self.meetup_exception_counter += 1
+            if self.meetup_exception_counter > 10:
+                raise
+            time.sleep(10.0)
+            return
         if not message:
             LOGGER.debug('maybe_update_meetup_message(): not message')
             return
@@ -295,6 +313,7 @@ class Mariusz:
     def maybe_update_mumble(self):
         '''Check if Mumble state changed: we either transitioned from 0 to
         nonzero or the other way around.'''
+        return
         now = time.time()
         if now - self.mumble_last_check < 60:
             return
