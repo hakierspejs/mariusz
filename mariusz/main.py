@@ -21,6 +21,7 @@ import mariusz.meetup
 import mariusz.coronavirus as coronavirus
 import mariusz.wiki
 import mariusz.mumble
+import mariusz.gnujdb
 
 LOGGER = logging.getLogger()
 
@@ -147,7 +148,7 @@ class Mariusz:
         )
         self.on({'\\.wersja'}, self.version)
         self.on({'jeszcze jak'}, 'https://www.youtube.com/watch?v=_jX3qsyIlHc')
-        self.on({'czy mamy', 'mamy może', 'mamy moze', 'może mamy', 'moze mamy'}, self.czymamy)
+        self.on(mariusz.gnujdb.TRIGGERS, self.czymamy)
 #        self.on({'nie wiem'}, 'https://www.youtube.com/watch?v=QnMqRTu4Rcc')
         self.on({'\\.panjezus'}, 'https://www.youtube.com/watch?v=aWJ8X3mt8Io')
         self.on({'\\.corobic'}, 'https://www.youtube.com/watch?v=6NR-Lq-hhSw')
@@ -234,13 +235,9 @@ class Mariusz:
         update.message.reply_text(build_version_description())
 
     def czymamy(self, update):
-        text = update.message.text.lower().strip()
-        if text.endswith('?'):
-            replacements = ('czy mamy', 'mamy może', 'mamy moze', 'może mamy', 'moze mamy', 'jakiś', 'w hsie', 'w spejsie', 'w hackerspejsie', 'w hs-ie')
-            for item in replacements:
-                text = text.replace(item, '')
-            q = text.replace('?', '').strip()
-            url = 'https://g.hs-ldz.pl/search?query=' + urllib.parse.quote(q)
+        # Czy jest w spejse pickit 2?
+        url = mariusz.gnujdb.czymamy(update.message.text)
+        if url:
             update.message.reply_text(url)
 
     def help(self, update):
