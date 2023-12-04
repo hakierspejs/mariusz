@@ -236,7 +236,7 @@ class Mariusz:
     def czymamy(self, update):
         text = update.message.text.lower()
         q = text.split('czy mamy ')[-1]
-        url = 'https://g.hs-ldz.pl/search?query=' + urllib.parse.quote(q)
+        url = 'https://g.hs-ldz.pl/search?query=' + urllib.parse.quote(q) + ''
         update.message.reply_text(url)
 
     def help(self, update):
