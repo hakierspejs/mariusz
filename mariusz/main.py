@@ -12,7 +12,6 @@ import subprocess
 import time
 import traceback
 import signal
-import urllib.parse
 
 from telegram.error import NetworkError, Unauthorized
 import telegram

@@ -21,7 +21,10 @@ class TestCzyMamyGnuj(unittest.TestCase):
                 "https://g.hs-ldz.pl/search?query=no%C5%BCyce",
             ),
             ("Czy jest na to czas?", None),
-            ("Czy jest w hs miarka?", "https://g.hs-ldz.pl/search?query=miarka"),
+            (
+                "Czy jest w hs miarka?",
+                "https://g.hs-ldz.pl/search?query=miarka",
+            ),
             ("Czy jest w hs miarka ", None),
             (
                 "Mamy może miarkę w spejsie?",

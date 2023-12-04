@@ -13,7 +13,8 @@ TRIGGERS = {
 }
 
 
-def czymamy(message: str) -> str | None:
+def czymamy(message):
+    # type:(str) -> Optional[str]
     url = None
     hsl_phrases = (
         "w spejse",
@@ -26,12 +27,14 @@ def czymamy(message: str) -> str | None:
     null_phrases = ("jakiś", "jakis", "może", "moze", "mamy")
     text = message.lower().split("?")[0].strip()
     if "?" in message and any(map(lambda x: x in text, hsl_phrases)):
-        replacements = "jakiś"
         for item in TRIGGERS:
             text = text.replace(item, "")
         for item in hsl_phrases:
             text = text.replace(item, "")
         for item in null_phrases:
             text = text.replace(item, "")
-        url = "https://g.hs-ldz.pl/search?query=" + urllib.parse.quote(text.strip())
+        url = (
+            "https://g.hs-ldz.pl/search?query="
+            + urllib.parse.quote(text.strip())
+        )
     return url
