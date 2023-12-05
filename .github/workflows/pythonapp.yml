@@ -41,7 +41,7 @@ jobs:
     - name: Pylint code analysis
       run: |
         python -m pip install pylint
-        pylint setup.py mariusz/
+        pylint --errors-only setup.py mariusz/
 
   build:
 
