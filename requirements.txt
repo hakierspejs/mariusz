@@ -4,3 +4,4 @@ lxml
 requests
 humanize==2.0.0
 meetupscraper>=0.8.2
+parameterized
