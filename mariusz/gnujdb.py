@@ -33,8 +33,7 @@ def czymamy(message):
             text = text.replace(item, "")
         for item in null_phrases:
             text = text.replace(item, "")
-        url = (
-            "https://g.hs-ldz.pl/search?query="
-            + urllib.parse.quote(text.strip())
+        url = "https://g.hs-ldz.pl/search?query=" + urllib.parse.quote(
+            text.strip()
         )
     return url
