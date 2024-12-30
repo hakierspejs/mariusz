@@ -125,11 +125,12 @@ class ChatDb:
 class Mariusz:
     """Main class of the bot. Handles all the commands."""
 
-    def __init__(self, api_key, path_to_chat_db):
+    def __init__(self, api_key, path_to_chat_db, group_regex):
         self.update_id = None
         self.reactions = {}
         self.last_meetup_check = 0
         self.bot = telegram.Bot(api_key)
+        self.group_regex = group_regex
         self.meetup_exception_counter = 0
         self.mumble_state = mariusz.mumble.get_mumble_user_count(MUMBLE_SERVER)
         self.mumble_last_update = time.time()
@@ -424,7 +425,8 @@ def main():
     logging.basicConfig(format=logfmt, level="DEBUG")
     api_key = os.environ["API_KEY"]
     path_to_chat_db = os.environ.get("SCIEZKA_DO_BAZY_CHATOW")
-    Mariusz(api_key, path_to_chat_db).run()
+    group_regex = os.environ.get("GROUP_REGEX")
+    Mariusz(api_key, path_to_chat_db, group_regex).run()
 
 
 if __name__ == "__main__":

@@ -3,5 +3,6 @@ python-dateutil
 lxml
 requests
 humanize==2.0.0
-meetupscraper>=0.8.2
+meetupscraper>=0.10.0
 parameterized
+imghdr

@@ -41,13 +41,16 @@ def describe_date(date):
     )
 
 
-def prepare_meetup_message():
+def prepare_meetup_message(group_regex=None):
     """Prepares a message about the upcoming meetup."""
 
+    events = meetupscraper.get_upcoming_events(
+        "Hakierspejs-Łódź", name_regex=group_regex
+    )
     upcoming_events = sorted(
         [
             e
-            for e in meetupscraper.get_upcoming_events("Hakierspejs-Łódź")
+            for e in events
             if (e.date + datetime.timedelta(days=1)) > datetime.datetime.now()
         ],
         key=lambda e: e.date,
