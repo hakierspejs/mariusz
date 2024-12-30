@@ -1,6 +1,8 @@
-FROM python as nasz_python
+FROM python:3.13 as nasz_python
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y dumb-init && apt-get clean
 
 ADD ./requirements.txt .
 RUN pip install -r requirements.txt
@@ -13,8 +15,6 @@ RUN mkdir /user && chown 1000:1000 /user
 WORKDIR /user
 ENV HOME=/user
 
-USER 1000
-
 FROM alpine/git as nasz_git
 ADD ./.git/ /git
 RUN git -C /git rev-parse HEAD > /tmp/commit-id
@@ -25,4 +25,4 @@ COPY --from=nasz_git /tmp/commit-id /tmp/commit-id
 COPY --from=nasz_git /tmp/commit-no /tmp/commit-no
 COPY --from=nasz_git /tmp/commit-date /tmp/commit-date
 
-ENTRYPOINT mariusz-bot
+ENTRYPOINT ["dumb-init", "--", "python3.13", "-m", "mariusz.main"]
