@@ -26,7 +26,7 @@ def czymamy(message):
     )
     null_phrases = ("jakiś", "jakis", "może", "moze", "mamy")
     text = message.lower().split("?")[0].strip()
-    if "?" in message and any(map(lambda x: x in text, hsl_phrases)):
+    if "?" in message and any((x in text for x in hsl_phrases)):
         for item in TRIGGERS:
             text = text.replace(item, "")
         for item in hsl_phrases:
