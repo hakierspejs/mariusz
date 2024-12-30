@@ -1,4 +1,4 @@
-python-telegram-bot<20.0
+python-telegram-bot==21.9
 python-dateutil
 lxml
 requests
@@ -6,3 +6,4 @@ humanize==2.0.0
 meetupscraper>=0.10.0
 parameterized
 standard-imghdr
+setuptools
