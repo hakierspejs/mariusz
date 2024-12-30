@@ -3,6 +3,7 @@
 
 """Entry point of Mariusz, a Telegram chatbot of Hakierspejs Łódź."""
 
+import asyncio
 import sqlite3
 import logging
 import re
@@ -13,7 +14,7 @@ import time
 import traceback
 import signal
 
-from telegram.error import NetworkError, Unauthorized
+from telegram.error import NetworkError
 import telegram
 
 import mariusz.meetup
@@ -47,7 +48,7 @@ POLISH_TO_LATIN = {
     "Ż": "Z",
 }
 
-MAIN_CHAT_ID = -1001361809256
+MAIN_CHAT_ID = int(os.environ["MAIN_CHAT_ID"])
 
 
 def normalize_word(word):
@@ -139,19 +140,12 @@ class Mariusz:
         self.wiki_last_check = time.time()
         self.wiki_msg = mariusz.wiki.build_wiki_message()
 
-        try:
-            self.update_id = self.bot.get_updates()[0].update_id
-        except IndexError:
-            self.update_id = None
-
         if path_to_chat_db:
             self.chat_db = ChatDb(path_to_chat_db)
         else:
             self.chat_db = None
 
-        version = build_version_description()
-        msg = f"Bot się wita po restarcie. wersja={version}"
-        self.send_to_all_chats(msg)
+        self.version = build_version_description()
 
         self.on(
             normalize({"Łódź", "Łodzi", "łódzkie"}),
@@ -168,20 +162,22 @@ class Mariusz:
         self.on({"\\.czy"}, self.czy)
         self.on({"\\.covid", "\\.coronavirus"}, "Komenda wyłączona.")
 
-    def send_to_all_chats(self, msg):
+    async def send_to_all_chats(self, msg):
         """Sends a message to all the chats other than the main one."""
         if self.chat_db is None:
             return
         for chat_id in self.chat_db.list():
             if chat_id == MAIN_CHAT_ID:
                 continue
-            self.try_send_message(text=msg, chat_id=chat_id)
+            await self.try_send_message(text=msg, chat_id=chat_id)
 
-    def try_send_message(self, *args, **kwargs):
+    async def try_send_message(self, *args, **kwargs):
         """A wrapper for send_message that silences Unauthorized exception."""
         try:
-            return self.bot.send_message(*args, **kwargs)
-        except (telegram.error.Unauthorized, telegram.error.BadRequest) as e:
+            ret = await self.bot.send_message(*args, **kwargs)
+            LOGGER.debug("try_send_message(%r, %r)=%r", args, kwargs, ret)
+            return ret
+        except telegram.error.BadRequest as e:
             LOGGER.exception(e)
             return None
 
@@ -291,7 +287,7 @@ class Mariusz:
 
     def prepare_meetup_message(self):
         try:
-            message = mariusz.meetup.prepare_meetup_message()
+            message = mariusz.meetup.prepare_meetup_message(self.group_regex)
             self.meetup_exception_counter = 0
         except Exception:
             self.meetup_exception_counter += 1
@@ -301,7 +297,7 @@ class Mariusz:
             return None
         return message
 
-    def maybe_update_meetup_message(self):
+    async def maybe_update_meetup_message(self):
         """Determines whether current pinned meetup message should be replaced
         and updates it if necessary."""
         if self.last_meetup_check + (3600 * 1) > time.time():
@@ -324,20 +320,20 @@ class Mariusz:
             if chat_id > 0:  # skip if it's a private chat instead of a group
                 LOGGER.debug("maybe_update_meetup_message(): chat_id > 0")
                 continue
-            chat = self.bot.get_chat(chat_id=chat_id)
+            chat = await self.bot.get_chat(chat_id=chat_id)
             if chat.pinned_message and chat.pinned_message.text == message:
                 LOGGER.debug("maybe_update_meetup_message(): nihil novi")
                 continue
-            msg = self.try_send_message(text=message, chat_id=chat_id)
+            msg = await self.try_send_message(text=message, chat_id=chat_id)
             if not msg:
                 LOGGER.debug("maybe_update_meetup_message(): not msg")
                 continue
             LOGGER.debug("maybe_update_meetup_message(): updating...")
             try:
-                self.bot.unpin_chat_message(chat_id=msg.chat_id)
+                await self.bot.unpin_chat_message(chat_id=msg.chat_id)
             except telegram.error.BadRequest:
                 pass  # nothing to unpin, dismiss
-            self.bot.pin_chat_message(
+            await self.bot.pin_chat_message(
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
 
@@ -379,32 +375,37 @@ class Mariusz:
                 self.mumble_state = cnt
                 self.mumble_last_update = now
 
-    def run(self):
+    async def run(self):
         """Bot's main loop."""
+
+        msg = f"Bot się wita po restarcie. wersja={self.version}"
+        await self.send_to_all_chats(msg)
+
+        try:
+            updates = await self.bot.get_updates()
+            self.update_id = updates[0].update_id
+        except IndexError:
+            self.update_id = None
 
         while True:
             try:
-                self.maybe_update_meetup_message()
+                await self.maybe_update_meetup_message()
                 self.maybe_update_mumble()
                 self.maybe_update_wiki()
-                self.handle_messages()
+                await self.handle_messages()
             except NetworkError:
                 time.sleep(1)
-            except Unauthorized:
-                # The user has removed or blocked the bot.
-                if self.update_id:
-                    self.update_id += 1
             except Exception:
                 formatted_traceback = traceback.format_exc()
                 message = f"Bot umar. Traceback:\n\n{formatted_traceback}"
-                self.send_to_all_chats(message)
+                await self.send_to_all_chats(message)
                 time.sleep(600)
                 raise
 
-    def handle_messages(self):
+    async def handle_messages(self):
         """For each unread message, determines whether and how to react."""
         signal.alarm(20)
-        updates = self.bot.get_updates(offset=self.update_id, timeout=10)
+        updates = await self.bot.get_updates(offset=self.update_id, timeout=10)
         signal.alarm(0)
         for update in updates:
             if update.update_id:
@@ -418,7 +419,7 @@ class Mariusz:
                     funtion(update)
 
 
-def main():
+async def main():
     """Program's entry point. Defined so that we don't polute the global
     namespace with extra variables."""
     logfmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -426,8 +427,9 @@ def main():
     api_key = os.environ["API_KEY"]
     path_to_chat_db = os.environ.get("SCIEZKA_DO_BAZY_CHATOW")
     group_regex = os.environ.get("GROUP_REGEX")
-    Mariusz(api_key, path_to_chat_db, group_regex).run()
+    m = Mariusz(api_key, path_to_chat_db, group_regex)
+    await m.run()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main(), debug=True)
