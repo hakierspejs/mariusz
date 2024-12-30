@@ -1,0 +1,16 @@
+services:
+  mariuszbot:
+    build: .
+    container_name: mariuszbot_ctf
+    restart: unless-stopped
+    volumes:
+      - ./baza.sqlite:/baza.sqlite
+    environment:
+      - SCIEZKA_DO_BAZY_CHATOW=/baza.sqlite
+      - TZ=Europe/Warsaw
+      - API_KEY=REDACTED
+      - PYTHONASYNCIODEBUG=1
+      - MAIN_CHAT_ID=-1002119535581
+      - GROUP_REGEX=Cryptoparty
+    labels:
+      - traefik.enable=false
