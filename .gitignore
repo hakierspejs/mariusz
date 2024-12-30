@@ -14,3 +14,5 @@ config.py
 
 # Standard directory for python venv
 .venv
+
+baza.sqlite
