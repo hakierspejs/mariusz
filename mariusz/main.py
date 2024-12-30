@@ -288,6 +288,18 @@ class Mariusz:
             msg += f"{reaction.pattern} => {description}\n"
         update.message.reply_text(msg, parse_mode=telegram.ParseMode.MARKDOWN)
 
+    def prepare_meetup_message(self):
+        try:
+            message = mariusz.meetup.prepare_meetup_message()
+            self.meetup_exception_counter = 0
+        except Exception:
+            self.meetup_exception_counter += 1
+            if self.meetup_exception_counter > 10:
+                raise
+            time.sleep(10.0)
+            return None
+        return message
+
     def maybe_update_meetup_message(self):
         """Determines whether current pinned meetup message should be replaced
         and updates it if necessary."""
@@ -297,15 +309,9 @@ class Mariusz:
                 "self.last_meetup_check + (3600 * 1) > time.time()"
             )
             return
-        try:
-            message = mariusz.meetup.prepare_meetup_message()
-            self.meetup_exception_counter = 0
-        except Exception:
-            self.meetup_exception_counter += 1
-            if self.meetup_exception_counter > 10:
-                raise
-            time.sleep(10.0)
-            return
+
+        message = self.prepare_meetup_message()
+
         if not message:
             LOGGER.debug("maybe_update_meetup_message(): not message")
             return
