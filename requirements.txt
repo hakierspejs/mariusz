@@ -1,9 +1,10 @@
-python-telegram-bot==21.9
+python-telegram-bot==21.9  # try python-telegram-bot<20.0 if you have issues
+standard-imghdr
 python-dateutil
 lxml
 requests
 humanize==2.0.0
-meetupscraper>=0.10.0
+meetupscraper>=0.11.0
 parameterized
 standard-imghdr
 setuptools

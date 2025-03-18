@@ -5,11 +5,12 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y dumb-init && apt-get clean
 
 ADD ./requirements.txt .
-RUN pip install -r requirements.txt
+RUN python3 -m pip install -r requirements.txt
+RUN python3 -m pip install urllib3==1.26.15
 
 ADD ./setup.py .
 ADD ./mariusz ./mariusz/
-RUN python setup.py install
+RUN python3 setup.py install
 
 RUN mkdir /user && chown 1000:1000 /user
 WORKDIR /user
