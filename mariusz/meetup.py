@@ -51,27 +51,29 @@ def prepare_meetup_message(group_regex=None):
         [
             e
             for e in events
-            if (e.date + datetime.timedelta(days=1)) > datetime.datetime.now()
+            if (e.date + datetime.timedelta(days=1)) > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=e.date.tzinfo)
         ],
         key=lambda e: e.date,
     )
     if not upcoming_events:
         return ""
     next_meeting = upcoming_events[0]
+    place = ""
 
-    if next_meeting.venue.name.lower() == "online event":
-        place = "(telekonferencja)"
-    else:
-        place = f"w {next_meeting.venue.name}"
-        if next_meeting.venue.street:
-            place += f"({next_meeting.venue.street})"
+    if next_meeting.venue:
+        if next_meeting.venue.name.lower() == "online event":
+            place = " (telekonferencja)"
+        else:
+            place = f" w {next_meeting.venue.name}"
+            if next_meeting.venue.street:
+                place += f"({next_meeting.venue.street})"
 
     ret = (
-        f"Nast. spotkanie: {describe_date(next_meeting.date)} {place}. "
+        f"Nast. spotkanie: {describe_date(next_meeting.date)}{place}. "
         f"Więcej szczegółów: {next_meeting.url}"
     )
 
-    time_left = (next_meeting.date - datetime.datetime.now()).total_seconds()
+    time_left = (next_meeting.date - datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=next_meeting.date.tzinfo)).total_seconds()
     if time_left < (60 * 60 * 3):
         ret = "Niedługo n" + ret[1:]
 
