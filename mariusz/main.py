@@ -25,7 +25,7 @@ import mariusz.gnujdb
 
 LOGGER = logging.getLogger()
 
-MUMBLE_SERVER = "junkcc.net"
+MUMBLE_SERVER = "hs-ldz.pl"
 
 POLISH_TO_LATIN = {
     "ą": "a",
