@@ -51,7 +51,10 @@ def prepare_meetup_message(group_regex=None):
         [
             e
             for e in events
-            if (e.date + datetime.timedelta(days=1)) > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=e.date.tzinfo)
+            if (e.date + datetime.timedelta(days=1))
+            > datetime.datetime.now(datetime.timezone.utc).replace(
+                tzinfo=e.date.tzinfo
+            )
         ],
         key=lambda e: e.date,
     )
@@ -73,7 +76,12 @@ def prepare_meetup_message(group_regex=None):
         f"Więcej szczegółów: {next_meeting.url}"
     )
 
-    time_left = (next_meeting.date - datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=next_meeting.date.tzinfo)).total_seconds()
+    time_left = (
+        next_meeting.date
+        - datetime.datetime.now(datetime.timezone.utc).replace(
+            tzinfo=next_meeting.date.tzinfo
+        )
+    ).total_seconds()
     if time_left < (60 * 60 * 3):
         ret = "Niedługo n" + ret[1:]
 

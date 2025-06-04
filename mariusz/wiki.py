@@ -38,7 +38,7 @@ def build_wiki_message():
     url = base_url + f"/{title}/_compare/{commit}%5E...{commit}"
     return (
         f'Wiki: {author} zmienił(a) "{title.replace("-", " ")}".\n\n'
-        f'Sprawdź zmianę tutaj: {url}'
+        f"Sprawdź zmianę tutaj: {url}"
     )
 
 
