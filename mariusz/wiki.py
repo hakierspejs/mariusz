@@ -4,14 +4,18 @@ import urllib.parse
 
 import dateutil.parser
 import lxml.etree as E
-import requests
+import httpx
 
 NS = "{http://www.w3.org/2005/Atom}"
 
 
-def get_wiki_entries(url: str):
+async def get_wiki_entries(url: str):
     """Returns all Wiki entries for a given URL."""
-    tree = E.fromstring(requests.get(url, timeout=10).text.encode())
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url, timeout=10)
+        r.raise_for_status()
+        text = r.text.encode()
+    tree = E.fromstring(text)
     entry_f = E.ETXPath(NS + "entry")
     entries = entry_f(tree)
     updated_f = E.ETXPath(".//" + NS + "updated/text()")
@@ -19,11 +23,11 @@ def get_wiki_entries(url: str):
     return entries
 
 
-def build_wiki_message() -> str:
+async def build_wiki_message() -> str:
     """Builds a message describing the current state of the wiki."""
     wiki_url = "https://github.com/hakierspejs/wiki/wiki.atom"
     try:
-        entries = get_wiki_entries(wiki_url)
+        entries = await get_wiki_entries(wiki_url)
         if not entries:
             return ""
         latest = entries.pop()

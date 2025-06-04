@@ -142,7 +142,7 @@ class Mariusz:
         self.mumble_last_check = time.time()
         self.wiki_last_update = time.time()
         self.wiki_last_check = time.time()
-        self.wiki_msg = mariusz.wiki.build_wiki_message()
+        self.wiki_msg: str | None = None
 
         if path_to_chat_db:
             self.chat_db: ChatDb | None = ChatDb(path_to_chat_db)
@@ -354,10 +354,15 @@ class Mariusz:
 
     async def maybe_update_wiki(self) -> None:
         """Check if anybody wrote anything on our wiki."""
+        if self.wiki_msg is None:
+            # Initialize here, as we can't invoke async functions in __init__
+            self.wiki_msg = await mariusz.wiki.build_wiki_message()
+            return
+
         now = time.time()
         if now - self.wiki_last_check < 60:
             return
-        msg = mariusz.wiki.build_wiki_message()
+        msg = await mariusz.wiki.build_wiki_message()
         differs = self.wiki_msg != msg
         late_enough = abs(now - self.wiki_last_update) > 60
         no_error = msg and self.wiki_msg
