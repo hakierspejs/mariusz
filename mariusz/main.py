@@ -4,24 +4,24 @@
 """Entry point of Mariusz, a Telegram chatbot of Hakierspejs Łódź."""
 
 import asyncio
-import sqlite3
 import logging
-import re
-import random
 import os
+import random
+import re
+import signal
+import sqlite3
 import subprocess
 import time
 import traceback
-import signal
 
-from telegram.error import NetworkError
 import telegram
+from telegram.error import NetworkError
 
-import mariusz.meetup
 import mariusz.coronavirus as coronavirus
-import mariusz.wiki
-import mariusz.mumble
 import mariusz.gnujdb
+import mariusz.meetup
+import mariusz.mumble
+import mariusz.wiki
 
 LOGGER = logging.getLogger()
 
