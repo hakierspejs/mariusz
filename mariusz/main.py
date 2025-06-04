@@ -8,7 +8,6 @@ import logging
 import os
 import random
 import re
-import signal
 import sqlite3
 import subprocess
 import time
@@ -420,9 +419,8 @@ class Mariusz:
 
     async def handle_messages(self) -> None:
         """For each unread message, determines whether and how to react."""
-        signal.alarm(20)
         updates = await self.bot.get_updates(offset=self.update_id, timeout=10)
-        signal.alarm(0)
+
         for update in updates:
             if update.update_id:
                 self.update_id = update.update_id + 1
