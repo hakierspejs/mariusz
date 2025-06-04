@@ -13,6 +13,7 @@ import sqlite3
 import subprocess
 import time
 import traceback
+from typing import Any, Callable, Coroutine, Generator
 
 import telegram
 from telegram.error import NetworkError
@@ -51,8 +52,8 @@ POLISH_TO_LATIN = {
 MAIN_CHAT_ID = int(os.environ["MAIN_CHAT_ID"])
 
 
-def normalize_word(word):
-    """Returns a version of the world with removed Polish diacritic
+def normalize_word(word: str) -> str:
+    """Returns a version of the word with removed Polish diacritic
     characters."""
     output = ""
     for letter in word:
@@ -61,7 +62,7 @@ def normalize_word(word):
     return output
 
 
-def normalize(sequence_of_words):
+def normalize(sequence_of_words: set[str]) -> set[str]:
     """Transforms a sequence of words into a set of words both with and without
     Polish diacritic characters."""
     output = set()
@@ -72,7 +73,7 @@ def normalize(sequence_of_words):
     return output
 
 
-def build_version_description():
+def build_version_description() -> str:
     """Describes the current version of the bot."""
     try:
         with open("/tmp/commit-id") as fh:
@@ -85,7 +86,7 @@ def build_version_description():
         version_b = subprocess.check_output(["git", "rev-parse", "HEAD"])
         version = version_b.decode()
         no_b = subprocess.check_output(["git", "log", "HEAD", "--oneline"])
-        numer = len(no_b.split(b"\n"))
+        numer = str(len(no_b.split(b"\n")))
         date = (
             subprocess.check_output(
                 ["git", "show", "-s", "--format=%ci", "HEAD"]
@@ -99,15 +100,15 @@ def build_version_description():
 class ChatDb:
     """Collects a list of chats that the bot ever spoke with."""
 
-    def __init__(self, fname):
+    def __init__(self, fname: str) -> None:
         self.db = sqlite3.connect(fname)
         self.load_schema()
 
-    def load_schema(self):
+    def load_schema(self) -> None:
         """Initializes the database by creating required entities."""
         self.db.execute("CREATE TABLE IF NOT EXISTS chat_ids (chat_id TEXT);")
 
-    def insert(self, chat_id):
+    def insert(self, chat_id: int) -> None:
         """Inserts a chat into the set."""
         return
         if int(chat_id) in self.list():
@@ -117,7 +118,7 @@ class ChatDb:
         cur.execute(sql, (chat_id,))
         self.db.commit()
 
-    def list(self):
+    def list(self) -> Generator[int, Any, None]:
         """Generated a sequence of chats that the bot ever spoke with."""
         for row in self.db.execute("SELECT DISTINCT chat_id FROM chat_ids"):
             yield int(row[0])
@@ -126,10 +127,13 @@ class ChatDb:
 class Mariusz:
     """Main class of the bot. Handles all the commands."""
 
-    def __init__(self, api_key, path_to_chat_db, group_regex):
-        self.update_id = None
-        self.reactions = {}
-        self.last_meetup_check = 0
+    def __init__(self, api_key: str, path_to_chat_db: str, group_regex: str):
+        self.update_id: int | None = None
+        self.reactions: dict[
+            re.Pattern[str],
+            Callable[[telegram.Update], Coroutine[Any, Any, None]],
+        ] = {}
+        self.last_meetup_check: float = 0
         self.bot = telegram.Bot(api_key)
         self.group_regex = group_regex
         self.meetup_exception_counter = 0
@@ -141,7 +145,7 @@ class Mariusz:
         self.wiki_msg = mariusz.wiki.build_wiki_message()
 
         if path_to_chat_db:
-            self.chat_db = ChatDb(path_to_chat_db)
+            self.chat_db: ChatDb | None = ChatDb(path_to_chat_db)
         else:
             self.chat_db = None
 
@@ -162,7 +166,7 @@ class Mariusz:
         self.on({"\\.czy"}, self.czy)
         self.on({"\\.covid", "\\.coronavirus"}, "Komenda wyłączona.")
 
-    async def send_to_all_chats(self, msg):
+    async def send_to_all_chats(self, msg: str) -> None:
         """Sends a message to all the chats other than the main one."""
         if self.chat_db is None:
             return
@@ -171,7 +175,9 @@ class Mariusz:
                 continue
             await self.try_send_message(text=msg, chat_id=chat_id)
 
-    async def try_send_message(self, *args, **kwargs):
+    async def try_send_message(
+        self, *args: Any, **kwargs: Any
+    ) -> telegram.Message | None:
         """A wrapper for send_message that silences Unauthorized exception."""
         try:
             ret = await self.bot.send_message(*args, **kwargs)
@@ -181,7 +187,11 @@ class Mariusz:
             LOGGER.exception(e)
             return None
 
-    def on(self, text, reaction):
+    def on(
+        self,
+        text: set[str],
+        reaction: str | Callable[[telegram.Update], Coroutine[Any, Any, None]],
+    ) -> None:
         """Registers a reaction to a given text message."""
         regex_str = "|".join(
             ["^" + x if x.startswith("\\.") else x for x in text]
@@ -189,7 +199,9 @@ class Mariusz:
         regex = re.compile(regex_str, flags=re.IGNORECASE)
         if isinstance(reaction, str):
 
-            async def say(update):
+            async def say(update: telegram.Update) -> None:
+                if not update.message:
+                    return
                 await update.message.reply_text(reaction)
 
             say.__doc__ = f"mówi `{reaction}`"
@@ -197,8 +209,11 @@ class Mariusz:
         else:
             self.reactions[regex] = reaction
 
-    async def covid(self, update):
+    async def covid(self, update: telegram.Update) -> None:
         """Statystyki związane z SARS-CoV-2"""
+        if not update.message or not update.message.text:
+            return
+
         arg = coronavirus.covid_arg(update.message.text)
         if arg is None:
             await update.message.reply_text(str(coronavirus.world()))
@@ -207,8 +222,11 @@ class Mariusz:
         await update.message.reply_text(str(coronavirus.country(arg)))
 
     # pozyczone od kolegi: https://github.com/yojo2/BillyMays/
-    async def czy(self, update):
+    async def czy(self, update: telegram.Update) -> None:
         """Taki magic 8-ball, tyle że nie"""
+        if not update.message:
+            return
+
         responses_yes = [
             "tak",
             "tak",
@@ -267,18 +285,26 @@ class Mariusz:
             response = random.choice(responses_dunno)
         await update.message.reply_text(response)
 
-    async def version(self, update):
+    async def version(self, update: telegram.Update) -> None:
         """Podaje pierwsze 6 znaków hasha commita wersji."""
+        if not update.message:
+            return
         await update.message.reply_text(build_version_description())
 
-    async def czymamy(self, update):
+    async def czymamy(self, update: telegram.Update) -> None:
+        if not update.message or not update.message.text:
+            return
+
         # Czy jest w spejse pickit 2?
         url = mariusz.gnujdb.czymamy(update.message.text)
         if url:
             await update.message.reply_text(url)
 
-    async def help(self, update):
+    async def help(self, update: telegram.Update) -> None:
         """Wyświetla pomoc"""
+        if not update.message:
+            return
+
         msg = ""
         for reaction, function in self.reactions.items():
             description = function.__doc__ or function.__name__
@@ -287,7 +313,7 @@ class Mariusz:
             msg, parse_mode=telegram.constants.ParseMode.MARKDOWN
         )
 
-    def prepare_meetup_message(self):
+    def prepare_meetup_message(self) -> str | None:
         try:
             message = mariusz.meetup.prepare_meetup_message(self.group_regex)
             self.meetup_exception_counter = 0
@@ -299,7 +325,7 @@ class Mariusz:
             return None
         return message
 
-    async def maybe_update_meetup_message(self):
+    async def maybe_update_meetup_message(self) -> None:
         """Determines whether current pinned meetup message should be replaced
         and updates it if necessary."""
         if self.last_meetup_check + (3600 * 1) > time.time():
@@ -339,7 +365,7 @@ class Mariusz:
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
 
-    async def maybe_update_wiki(self):
+    async def maybe_update_wiki(self) -> None:
         """Check if anybody wrote anything on our wiki."""
         now = time.time()
         if now - self.wiki_last_check < 60:
@@ -348,7 +374,7 @@ class Mariusz:
         differs = self.wiki_msg != msg
         late_enough = abs(now - self.wiki_last_update) > 60
         no_error = msg and self.wiki_msg
-        if differs and late_enough and no_error:
+        if differs and late_enough and no_error and self.chat_db:
             for chat_id in self.chat_db.list():
                 if chat_id == MAIN_CHAT_ID:
                     continue  # don't spam our main group
@@ -356,7 +382,7 @@ class Mariusz:
                 self.wiki_msg = msg
                 self.wiki_last_update = now
 
-    async def maybe_update_mumble(self):
+    async def maybe_update_mumble(self) -> None:
         """Check if Mumble state changed: we either transitioned from 0 to
         nonzero or the other way around."""
         return
@@ -377,7 +403,7 @@ class Mariusz:
                 self.mumble_state = cnt
                 self.mumble_last_update = now
 
-    async def run(self):
+    async def run(self) -> None:
         """Bot's main loop."""
 
         msg = f"Bot się wita po restarcie. wersja={self.build_version}"
@@ -406,7 +432,7 @@ class Mariusz:
                 await asyncio.sleep(600)
                 raise
 
-    async def handle_messages(self):
+    async def handle_messages(self) -> None:
         """For each unread message, determines whether and how to react."""
         signal.alarm(20)
         updates = await self.bot.get_updates(offset=self.update_id, timeout=10)
@@ -423,7 +449,7 @@ class Mariusz:
                     await funtion(update)
 
 
-async def main():
+async def main() -> None:
     """Program's entry point. Defined so that we don't polute the global
     namespace with extra variables."""
     logfmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -431,8 +457,15 @@ async def main():
     api_key = os.environ["API_KEY"]
     path_to_chat_db = os.environ.get("SCIEZKA_DO_BAZY_CHATOW")
     group_regex = os.environ.get("GROUP_REGEX")
-    m = Mariusz(api_key, path_to_chat_db, group_regex)
-    await m.run()
+
+    if api_key and path_to_chat_db and group_regex:
+        m = Mariusz(api_key, path_to_chat_db, group_regex)
+        await m.run()
+    else:
+        raise ValueError(
+            "Set all required environment variables: "
+            "API_KEY, SCIEZKA_DO_BAZY_CHATOW, GROUP_REGEX"
+        )
 
 
 if __name__ == "__main__":

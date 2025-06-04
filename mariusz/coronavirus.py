@@ -71,7 +71,7 @@ def country(country_id) -> CoronavirusStats:
     )
 
 
-def covid_arg(text):
+def covid_arg(text: str) -> int | None:
     """Returns arguments associated with ".covid" bot command.
 
     Example:

@@ -9,7 +9,7 @@ import requests
 NS = "{http://www.w3.org/2005/Atom}"
 
 
-def get_wiki_entries(url):
+def get_wiki_entries(url: str):
     """Returns all Wiki entries for a given URL."""
     tree = E.fromstring(requests.get(url, timeout=10).text.encode())
     entry_f = E.ETXPath(NS + "entry")
@@ -19,7 +19,7 @@ def get_wiki_entries(url):
     return entries
 
 
-def build_wiki_message():
+def build_wiki_message() -> str:
     """Builds a message describing the current state of the wiki."""
     wiki_url = "https://github.com/hakierspejs/wiki/wiki.atom"
     try:

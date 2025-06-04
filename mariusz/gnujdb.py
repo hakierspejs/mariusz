@@ -13,8 +13,7 @@ TRIGGERS = {
 }
 
 
-def czymamy(message):
-    # type:(str) -> Optional[str]
+def czymamy(message: str) -> str | None:
     url = None
     hsl_phrases = (
         "w spejse",

@@ -32,7 +32,7 @@ MONTH_NAMES = [
 ]
 
 
-def describe_date(date):
+def describe_date(date: datetime.datetime) -> str:
     """Describes the date, according to the Polish grammar."""
     month = MONTH_NAMES[date.month - 1]
     return (
@@ -41,7 +41,7 @@ def describe_date(date):
     )
 
 
-def prepare_meetup_message(group_regex=None):
+def prepare_meetup_message(group_regex: str | None = None) -> str:
     """Prepares a message about the upcoming meetup."""
 
     events = meetupscraper.get_upcoming_events(
