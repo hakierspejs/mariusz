@@ -18,7 +18,6 @@ from typing import Any, Callable, Coroutine, Generator
 import telegram
 from telegram.error import NetworkError
 
-import mariusz.coronavirus as coronavirus
 import mariusz.gnujdb
 import mariusz.meetup
 import mariusz.mumble
@@ -164,7 +163,6 @@ class Mariusz:
         self.on({"\\.co"}, "https://www.youtube.com/watch?v=YeIGdcSM5NY")
         self.on({"\\.help", "\\.pomoc", "\\.komendy"}, self.help)
         self.on({"\\.czy"}, self.czy)
-        self.on({"\\.covid", "\\.coronavirus"}, "Komenda wyłączona.")
 
     async def send_to_all_chats(self, msg: str) -> None:
         """Sends a message to all the chats other than the main one."""
@@ -208,18 +206,6 @@ class Mariusz:
             self.reactions[regex] = say
         else:
             self.reactions[regex] = reaction
-
-    async def covid(self, update: telegram.Update) -> None:
-        """Statystyki związane z SARS-CoV-2"""
-        if not update.message or not update.message.text:
-            return
-
-        arg = coronavirus.covid_arg(update.message.text)
-        if arg is None:
-            await update.message.reply_text(str(coronavirus.world()))
-            return
-
-        await update.message.reply_text(str(coronavirus.country(arg)))
 
     # pozyczone od kolegi: https://github.com/yojo2/BillyMays/
     async def czy(self, update: telegram.Update) -> None:

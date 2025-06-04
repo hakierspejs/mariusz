@@ -15,7 +15,9 @@ def get_mumble_user_count(mumble_server: str) -> int:
         s.connect((mumble_server, 64738))
         s.send(b"\x00\x00\x00\x00abcdefgh")
         x = s.recv(1024)
-        return int(struct.unpack(">xxxx" + "x" * len("abcdefgh") + "I" * 3, x)[0])
+        return int(
+            struct.unpack(">xxxx" + "x" * len("abcdefgh") + "I" * 3, x)[0]
+        )
     except socket.error as e:
         LOGGER.error("get_mumble_user_count: %r", e)
         return 0
