@@ -1,0 +1,26 @@
+[project]
+name = "mariusz"
+version = "0.1.0"
+description = "Hakierspejs Lodz multi-purpose telegram bot."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    {name = "hakierspejs", email = "lodz@lists.hackerspace.pl"}
+]
+urls = {Homepage = "https://github.com/hakierspejs/mariusz"}
+dependencies = [
+    "httpx~=0.28.1",
+    "lxml~=5.4.0",
+    "meetupscraper>=0.11.2",
+    "python-dateutil~=2.9.0",
+    "python-telegram-bot~=21.9",
+]
+
+[project.scripts]
+mariusz-bot = "mariusz.main:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.16.0",
+    "parameterized~=0.9.0",
+]
