@@ -11,7 +11,7 @@ NS = "{http://www.w3.org/2005/Atom}"
 
 def get_wiki_entries(url):
     """Returns all Wiki entries for a given URL."""
-    tree = E.fromstring(requests.get(url).text.encode())
+    tree = E.fromstring(requests.get(url, timeout=10).text.encode())
     entry_f = E.ETXPath(NS + "entry")
     entries = entry_f(tree)
     updated_f = E.ETXPath(".//" + NS + "updated/text()")
