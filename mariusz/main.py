@@ -125,7 +125,9 @@ class ChatDb:
 class Mariusz:
     """Main class of the bot. Handles all the commands."""
 
-    def __init__(self, api_key: str, path_to_chat_db: str, group_regex: str):
+    def __init__(
+        self, api_key: str, path_to_chat_db: str, group_regex: str | None
+    ):
         self.update_id: int | None = None
         self.reactions: dict[
             re.Pattern[str],
@@ -442,14 +444,13 @@ async def main() -> None:
     path_to_chat_db = os.environ.get("SCIEZKA_DO_BAZY_CHATOW")
     group_regex = os.environ.get("GROUP_REGEX")
 
-    if api_key and path_to_chat_db and group_regex:
-        m = Mariusz(api_key, path_to_chat_db, group_regex)
-        await m.run()
-    else:
+    if not api_key or not path_to_chat_db:
         raise ValueError(
-            "Set all required environment variables: "
-            "API_KEY, SCIEZKA_DO_BAZY_CHATOW, GROUP_REGEX"
+            "Set API_KEY and SCIEZKA_DO_BAZY_CHATOW environment variables."
         )
+
+    m = Mariusz(api_key, path_to_chat_db, group_regex)
+    await m.run()
 
 
 if __name__ == "__main__":
