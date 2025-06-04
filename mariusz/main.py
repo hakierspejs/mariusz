@@ -145,7 +145,7 @@ class Mariusz:
         else:
             self.chat_db = None
 
-        self.version = build_version_description()
+        self.build_version = build_version_description()
 
         self.on(
             normalize({"Łódź", "Łodzi", "łódzkie"}),
@@ -189,25 +189,25 @@ class Mariusz:
         regex = re.compile(regex_str, flags=re.IGNORECASE)
         if isinstance(reaction, str):
 
-            def say(update):
-                update.message.reply_text(reaction)
+            async def say(update):
+                await update.message.reply_text(reaction)
 
             say.__doc__ = f"mówi `{reaction}`"
             self.reactions[regex] = say
         else:
             self.reactions[regex] = reaction
 
-    def covid(self, update):
+    async def covid(self, update):
         """Statystyki związane z SARS-CoV-2"""
         arg = coronavirus.covid_arg(update.message.text)
         if arg is None:
-            update.message.reply_text(str(coronavirus.world()))
+            await update.message.reply_text(str(coronavirus.world()))
             return
 
-        update.message.reply_text(str(coronavirus.country(arg)))
+        await update.message.reply_text(str(coronavirus.country(arg)))
 
     # pozyczone od kolegi: https://github.com/yojo2/BillyMays/
-    def czy(self, update):
+    async def czy(self, update):
         """Taki magic 8-ball, tyle że nie"""
         responses_yes = [
             "tak",
@@ -265,25 +265,27 @@ class Mariusz:
             response = random.choice(responses_no)
         else:
             response = random.choice(responses_dunno)
-        update.message.reply_text(response)
+        await update.message.reply_text(response)
 
-    def version(self, update):
+    async def version(self, update):
         """Podaje pierwsze 6 znaków hasha commita wersji."""
-        update.message.reply_text(build_version_description())
+        await update.message.reply_text(build_version_description())
 
-    def czymamy(self, update):
+    async def czymamy(self, update):
         # Czy jest w spejse pickit 2?
         url = mariusz.gnujdb.czymamy(update.message.text)
         if url:
-            update.message.reply_text(url)
+            await update.message.reply_text(url)
 
-    def help(self, update):
+    async def help(self, update):
         """Wyświetla pomoc"""
         msg = ""
         for reaction, function in self.reactions.items():
             description = function.__doc__ or function.__name__
             msg += f"{reaction.pattern} => {description}\n"
-        update.message.reply_text(msg, parse_mode=telegram.constants.ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            msg, parse_mode=telegram.constants.ParseMode.MARKDOWN
+        )
 
     def prepare_meetup_message(self):
         try:
@@ -378,7 +380,7 @@ class Mariusz:
     async def run(self):
         """Bot's main loop."""
 
-        msg = f"Bot się wita po restarcie. wersja={self.version}"
+        msg = f"Bot się wita po restarcie. wersja={self.build_version}"
         await self.send_to_all_chats(msg)
 
         try:
@@ -394,12 +396,12 @@ class Mariusz:
                 self.maybe_update_wiki()
                 await self.handle_messages()
             except NetworkError:
-                time.sleep(1)
+                await asyncio.sleep(1)
             except Exception:
                 formatted_traceback = traceback.format_exc()
                 message = f"Bot umar. Traceback:\n\n{formatted_traceback}"
                 await self.send_to_all_chats(message)
-                time.sleep(600)
+                await asyncio.sleep(600)
                 raise
 
     async def handle_messages(self):
@@ -416,7 +418,7 @@ class Mariusz:
                 self.chat_db.insert(update.message.chat_id)
             for reaction, funtion in self.reactions.items():
                 if reaction.match(update.message.text):
-                    funtion(update)
+                    await funtion(update)
 
 
 async def main():
