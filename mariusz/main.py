@@ -339,7 +339,7 @@ class Mariusz:
                 message_id=msg.message_id, chat_id=msg.chat_id
             )
 
-    def maybe_update_wiki(self):
+    async def maybe_update_wiki(self):
         """Check if anybody wrote anything on our wiki."""
         now = time.time()
         if now - self.wiki_last_check < 60:
@@ -352,11 +352,11 @@ class Mariusz:
             for chat_id in self.chat_db.list():
                 if chat_id == MAIN_CHAT_ID:
                     continue  # don't spam our main group
-                self.try_send_message(text=msg, chat_id=chat_id)
+                await self.try_send_message(text=msg, chat_id=chat_id)
                 self.wiki_msg = msg
                 self.wiki_last_update = now
 
-    def maybe_update_mumble(self):
+    async def maybe_update_mumble(self):
         """Check if Mumble state changed: we either transitioned from 0 to
         nonzero or the other way around."""
         return
@@ -373,7 +373,7 @@ class Mariusz:
             for chat_id in self.chat_db.list():
                 if chat_id > 0:
                     continue  # skip if it's a private chat instead of a group
-                self.try_send_message(text=msg, chat_id=chat_id)
+                await self.try_send_message(text=msg, chat_id=chat_id)
                 self.mumble_state = cnt
                 self.mumble_last_update = now
 
@@ -391,10 +391,12 @@ class Mariusz:
 
         while True:
             try:
-                await self.maybe_update_meetup_message()
-                self.maybe_update_mumble()
-                self.maybe_update_wiki()
-                await self.handle_messages()
+                await asyncio.gather(
+                    self.maybe_update_meetup_message(),
+                    self.maybe_update_mumble(),
+                    self.maybe_update_wiki(),
+                    self.handle_messages(),
+                )
             except NetworkError:
                 await asyncio.sleep(1)
             except Exception:
