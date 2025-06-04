@@ -283,7 +283,7 @@ class Mariusz:
         for reaction, function in self.reactions.items():
             description = function.__doc__ or function.__name__
             msg += f"{reaction.pattern} => {description}\n"
-        update.message.reply_text(msg, parse_mode=telegram.ParseMode.MARKDOWN)
+        update.message.reply_text(msg, parse_mode=telegram.constants.ParseMode.MARKDOWN)
 
     def prepare_meetup_message(self):
         try:
